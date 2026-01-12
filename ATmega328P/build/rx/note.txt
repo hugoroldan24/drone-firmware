@@ -1,0 +1,1 @@
+This directory will contain the receiver compilation and linking files (.o, .elf, .hex) 
