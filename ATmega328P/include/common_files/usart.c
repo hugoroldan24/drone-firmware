@@ -106,7 +106,7 @@ void USART_Send_Char(char c)
 {
    while(!ready);	     /* Wait until previous transmission completes */
    ready = 0;	
-   data = c;   
+   data = (uint8_t) c;   
    UCSR0B |= (1<<UDRIE0);  /* Enable UDRE interrupt to send next byte */  
 }
 

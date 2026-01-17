@@ -1,5 +1,6 @@
 
 #include "common.h"
+#include <avr/interrupt.h>
 
 static volatile uint8_t match;
 

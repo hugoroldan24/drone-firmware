@@ -1,8 +1,7 @@
 #include "common.h"
 #include "radio_transmitter.h"
-#include "adc.h"
-#include "timer0.h"
-#include "scheduler.h"
+#include "circular_queue.h"
+#include "hc06.h"
 
 extern volatile uint8_t received_telem;
 
@@ -39,5 +38,6 @@ void telemetry_task(void)
    {
       received_telem = 0U;
       get_Telem_Data(telem_data,TELEM_FRAME_SIZE);
+      hc06_send_telemetry(telem_data);
    }
 }

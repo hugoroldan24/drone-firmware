@@ -1,6 +1,7 @@
-
-#include <stdint.h>
 #include "scheduler.h"
+#include "common.h"
+#include <avr/interrupt.h>
+#include <stdint.h>
 
 static scheduler_task_t task_table[MAX_TASKS];
 static uint32_t task_count;
@@ -38,6 +39,7 @@ uint8_t scheduler_add_task(task_func_t task, uint32_t period_ms)
     task_table[task_count].period_ms = period_ms;
     task_table[task_count].elapsed_ms = 0U;
     task_count++;
+    
     return 1;
 }
 

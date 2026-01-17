@@ -12,7 +12,7 @@ typedef struct {
 } scheduler_task_t;
 
 void scheduler_init(void);
-void scheduler_disptach(void);
+void scheduler_dispatch(void);
 uint8_t scheduler_add_task(task_func_t task, uint32_t period_ms);
 
 #endif

@@ -18,12 +18,10 @@
  *
  ***********************************************************************************************/
  
- 	
-#include "spi.h"
 #include "receiver.h"
-#include "radio_receiver.h"
+#include "scheduler.h"
 #include "rx_tasks.h"
-#include "common.h"
+#include "const.h"
 
 	
 /**

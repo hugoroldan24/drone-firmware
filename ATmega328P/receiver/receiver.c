@@ -7,7 +7,6 @@
  
 #include "spi.h"
 #include "radio_receiver.h"
-#include "pwm.h"
 #include "common.h"
 #include <avr/interrupt.h>
 
@@ -24,10 +23,7 @@
  */
 void receiver_config(){
   sei(); 		            /*Set Global Interruptions, from now, we can accept hardware interrupts*/
-  SPI_Init();		        /*Initialice the SPI feature*/
-  PWM_Init();  		      /*Initialice the PWM feature*/
-  PWM_Timer0_Init();  	/*Initialice the Timer0*/ 
-  PWM_Start();		       /*We start generating PWM signals*/
+  SPI_Init();		        /*Initialice the SPI feature*/		       /*We start generating PWM signals*/
   init_interrupt_pin();
   RF_Receiver_Init();  /*We initialice the RF module as a receiver*/
   Radio_Listen();	     /*We start listening for incoming packets*/

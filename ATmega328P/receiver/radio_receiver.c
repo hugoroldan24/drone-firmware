@@ -150,12 +150,12 @@ void RF_Receiver_Init()
   DDRB |= (1<<DD_CE);		                     /* Configure CE pin as output */
   PORTB &= ~(1 << CE_PIN);		                /* Ensure CE = 0 */
   
-  delay_us(10300);			    		                /* Wait ~10.3 ms for power-down stabilization */
+  _delay_us(10300);			    		                /* Wait ~10.3 ms for power-down stabilization */
   writeRegister(W_RF_CH,0x04);         	    /* Set RF channel to 2.404 GHz (avoid Wi-Fi) */	  
   writeRegister(W_RF_SETUP,0x0F);	    	  	  /* 2 Mbps data rate, 0 dBm, enable LNA gain */ 
   writeRegister(W_SETUP_AW,0x03);	   		     /* Address width = 5 bytes */ 
   //writeRegister(W_EN_AA,0x00);	           		/* Disable auto-acknowledgment on all pipes */
-  /writeRegister(W_EN_AA,EN_AA_P0);                 /* Enable data auto acknowledgment on pipe 0*/
+  //writeRegister(W_EN_AA,EN_AA_P0);                 /* Enable data auto acknowledgment on pipe 0*/
   writeRegister(W_EN_RXADDR,0x01);	    		   /* Enable only pipe 0 */
   //writeRegister(W_RX_PW_P0,0x04);           /* Static payload length = 4 bytes on pipe 0 */ (no trabajamos con static)
   writeRegister(W_STATUS,(1<<6));          	/* Clear RX_DS flag */  
@@ -165,7 +165,7 @@ void RF_Receiver_Init()
   writeRegister(W_DYNPD, 0xFF); /* In RX mode the DYNPD has to be set */
 
 
-            /* Estas tres
+            /* Estas tres */
             /* ultimas lineas nos permiten usar el comando W_ACK_PAYLOAD */
             /* Tener en cuenta que tambien hay que tener habilitado el dynamic payload*/
             /* Siguendo el diagrama del receptor, aunque tengamos el Auto_ACK activado, si el paquete viene con flag NO_ACK activado*/
@@ -214,7 +214,7 @@ void RF_Receiver_Init()
    PORTD &= ~(1 << SS_PIN); 
    SPI_Send_Data(W_ACK_PAYLOAD);
    for(uint8_t i = 0;i<len;i++){
-         SPI_Send_Data(*payload++)
+         SPI_Send_Data(*payload++);
    }
    PORTD |= (1 << SS_PIN);
  }

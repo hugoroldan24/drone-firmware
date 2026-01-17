@@ -24,15 +24,10 @@
  *
  ************************************************************************************************************/
  
- 
-#include "common.h"
+#include "const.h"
 #include "transmitter.h"
-#include "radio_transmitter.h"
-#include "adc.h"
-#include "timer0.h"
 #include "scheduler.h"
 #include "tx_tasks.h"
-
 
 /**
  * @brief  Main function for the transmitter firmware.

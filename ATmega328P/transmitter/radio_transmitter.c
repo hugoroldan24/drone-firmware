@@ -42,7 +42,7 @@
  
 #include "spi.h"
 #include "common.h"
-
+#include <avr/interrupt.h>
 
 volatile uint8_t received_telem = 0;
 

@@ -9,7 +9,7 @@
 #include "adc.h"
 #include "spi.h"
 #include "common.h"
-#include "timer0.h"
+#include "usart.h"
 #include "radio_transmitter.h"
 #include <avr/interrupt.h>
 
@@ -32,6 +32,4 @@ void transmitter_config()
   RF_Transmitter_Init();  	  
   start_ADC_conversion();
   USART_Init(UBRR);
-  Timer0_Init();
-  start_Timer0();
 }

@@ -171,8 +171,8 @@
 #define TELEM_FRAME_SIZE   4U
 #define CIRCULAR_QUEUE_SIZE TELEM_FRAME_SIZE*6 /* Ha de ser múltiplo del tamaño de los paquetes de telemetria (24 bytes en este caso) */
 
-#define SCHEDULER_PERIOD 250
-
+#define SCHEDULER_PERIOD 250U
+#define MAX_TASKS 8U
 
 #define SEND_DATA_TASK_PERIOD_MS 1
 #define RECEIVE_DATA_TASK_PERIOD_MS 1

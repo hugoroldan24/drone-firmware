@@ -72,8 +72,10 @@ TX_SRC      = $(TX_SRC_ROUTE)main.c \
 # RX source files
 RX_SRC      = $(RX_SRC_ROUTE)main.c \
                $(RX_SRC_ROUTE)radio_receiver.c \
-               $(RX_SRC_ROUTE)pwm.c \
                $(RX_SRC_ROUTE)receiver.c \
+               $(RX_SRC_ROUTE)rx_tasks.c \
+               $(RX_SRC_ROUTE)telemetry.c \
+               $(RX_SRC_ROUTE)timer1.c \
                $(COMMON_ROUTE)spi.c \
 			   $(COMMON_ROUTE)circular_queue.c \
 			   $(COMMON_ROUTE)scheduler.c \

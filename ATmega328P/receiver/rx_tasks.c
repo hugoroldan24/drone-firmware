@@ -1,7 +1,8 @@
 #include "spi.h"
-#include "receiver.h"
 #include "radio_receiver.h"
 #include "common.h"
+#include "telemetry.h"
+#include "usart.h"
 
 void receive_data_task(void)
 {
