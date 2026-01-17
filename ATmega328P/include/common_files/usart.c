@@ -102,6 +102,13 @@ void USART_Send(uint8_t* buf, uint8_t len)
      }   	
 }
 
+void USART_Send_Char(char c)
+{
+   while(!ready);	     /* Wait until previous transmission completes */
+   ready = 0;	
+   data = c;   
+   UCSR0B |= (1<<UDRIE0);  /* Enable UDRE interrupt to send next byte */  
+}
 
 /**
  * @brief  Send a null-terminated string via USART.
@@ -113,7 +120,7 @@ void USART_Send(uint8_t* buf, uint8_t len)
 void USART_Send_String(const char* str)
 {
     while(*str){	    /* Loop until end of string '\0' */
-    	USART_Send(*str++);
+    	USART_Send_Char(*str++);
 	}
 }
 

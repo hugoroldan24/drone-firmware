@@ -2,12 +2,18 @@
 #include "usart.h"
 
 
-ISR(USART_RX_vect)
+void hc06_send_telemetry(uint8_t *buf)
 {
-    
-}
-/* This function will only be used when configurating the hc06 once, it will not be included in the functional software */
-void hc06_config(void)
-{
+   USART_Send_String("Battery Voltage: ")
+   USART_Send(&buf[0],1);
+   USART_Send_Char(".");
+   USART_Send(&buf[1],1);
+   USART_Send_Char(" V");
+   USART_Send_Char("\n");
 
+   USART_Send_String("Height: ")
+   USART_Send(&buf[2],1);
+   USART_Send_Char(".");
+   USART_Send(&buf[3],1);
+   USART_Send_Char(" m");
 }

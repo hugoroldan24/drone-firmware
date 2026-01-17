@@ -13,6 +13,7 @@
 
 void USART_Init(unsigned int ubrr);
 void USART_Send(uint8_t *buf,uint8_t len);
+void USART_Send_Char(char c);
 void USART_Send_String(const char* str);
 
 #endif
