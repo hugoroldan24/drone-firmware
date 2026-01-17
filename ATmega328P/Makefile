@@ -62,7 +62,11 @@ TX_SRC      = $(TX_SRC_ROUTE)main.c \
                $(TX_SRC_ROUTE)radio_transmitter.c \
                $(TX_SRC_ROUTE)adc.c \
                $(TX_SRC_ROUTE)transmitter.c \
+			   $(TX_SRC_ROUTE)hc06.c \
+			   $(TX_SRC_ROUTE)tx_tasks.c \
                $(COMMON_ROUTE)spi.c \
+			   $(COMMON_ROUTE)circular_queue.c \
+			   $(COMMON_ROUTE)scheduler.c \
                $(COMMON_ROUTE)usart.c
 
 # RX source files
@@ -71,6 +75,8 @@ RX_SRC      = $(RX_SRC_ROUTE)main.c \
                $(RX_SRC_ROUTE)pwm.c \
                $(RX_SRC_ROUTE)receiver.c \
                $(COMMON_ROUTE)spi.c \
+			   $(COMMON_ROUTE)circular_queue.c \
+			   $(COMMON_ROUTE)scheduler.c \
                $(COMMON_ROUTE)usart.c
 
 
