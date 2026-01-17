@@ -9,7 +9,7 @@ void hc06_send_telemetry(uint8_t *buf)
    USART_Send_Char('.');
    USART_Send(&buf[1],1);
    USART_Send_String(" V");
-   USART_Send_Char("\n");
+   USART_Send_Char('\n');
 
    USART_Send_String("Height: ");
    USART_Send(&buf[2],1);
