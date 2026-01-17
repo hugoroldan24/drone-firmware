@@ -31,10 +31,8 @@
 #include "adc.h"
 #include "timer0.h"
 #include "scheduler.h"
-#include "tasks.h"
+#include "tx_tasks.h"
 
-
-#define MODE TRANSMITTER 
 
 /**
  * @brief  Main function for the transmitter firmware.
