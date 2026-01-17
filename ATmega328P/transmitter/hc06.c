@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include "usart.h"
 
-
 void hc06_send_telemetry(uint8_t *buf)
 {
    USART_Send_String("Battery Voltage: ");
