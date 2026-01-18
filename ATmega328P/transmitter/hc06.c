@@ -1,19 +1,37 @@
 #include <stdint.h>
+#include <stdio.h>
 #include "usart.h"
 
+static char* ascii_str[4];
 
 void hc06_send_telemetry(uint8_t *buf)
-{
+{   
    USART_Send_String("Battery Voltage: ");
-   USART_Send(&buf[0],1);
+   
+   sprintf(ascii_str,"%u",buf[0]);
+   USART_Send_String(ascii_str);
+   
    USART_Send_Char('.');
-   USART_Send(&buf[1],1);
+   
+   sprintf(ascii_str,"%u",buf[1]);
+   USART_Send_String(ascii_str);
+   
    USART_Send_String(" V");
    USART_Send_Char('\n');
 
    USART_Send_String("Height: ");
-   USART_Send(&buf[2],1);
+   
+   sprintf(ascii_str,"%u",buf[2]);
+   USART_Send_String(ascii_str);
+   
    USART_Send_Char('.');
-   USART_Send(&buf[3],1);
+   
+   sprintf(ascii_str,"%u",buf[3]);
+   USART_Send_String(ascii_str);
+   
    USART_Send_String(" m");
+   
+   USART_Send_Char('\n');
+   USART_Send_Char('\n');
+   USART_Send_Char('\n');
 }
