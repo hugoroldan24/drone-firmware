@@ -50,12 +50,10 @@
  *
  ***********************************************************************************************/
  
- 
 #include "common.h"
 #include "spi.h"
 #include "timer1.h"
 #include <avr/interrupt.h>
-
 
 volatile int8_t availableData = 0;
 

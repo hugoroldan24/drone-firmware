@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-void add_element_queue(uint8_t elem);
-uint8_t read_element_queue(uint8_t *buf, uint8_t len);
+void add_element_queue_ISR(uint8_t elem);
+uint8_t read_element_queue_atomic(uint8_t *buf, uint8_t len);
 
 #endif

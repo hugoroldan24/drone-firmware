@@ -68,7 +68,7 @@ ISR(TIMER1_COMPB_vect)
  */
 ISR(ADC_vect)
 {
-  add_element_queue((uint8_t) ADCH);
+  add_element_queue_ISR((uint8_t) ADCH);
   
   if(++channel >= NUM_ELEMENTS){ 
   channel = 0;   	/* Start over after last channel */

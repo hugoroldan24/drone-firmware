@@ -13,7 +13,7 @@ void send_data_task(void)
    time_elapsed++;  /* Con esto podemos contar de 1 ms en 1 ms*/
 
    uint8_t success;
-   success = read_element_queue(joystick.axis,NUM_ELEMENTS);
+   success = read_element_queue_atomic(joystick.axis,NUM_ELEMENTS);
    
    if(success){
       if(time_elapsed == SEND_ACK_PERIOD_MS) /* Comprobamos si ha pasado el tiempo, si es el caso pues enviamos un paquete pidiendo ACK */
