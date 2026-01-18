@@ -48,9 +48,12 @@ static void memcpy_cq(uint8_t *dst, uint8_t len)
    }
 }
 
+/* This function is donde considering that the CIRCULAR_QUEUE_SIZE <= 128, if that was not the case, special care should be taken with the
+ data types! */
 static inline uint8_t get_num_elem()
 {  
-   return ((head-tail<0) ? (head-tail) + CIRCULAR_QUEUE_SIZE : (head-tail));
+   int8_t res = (int8_t) (head - tail);
+   return (res<0) ? (uint8_t) (res + CIRCULAR_QUEUE_SIZE) : (uint8_t) res;
 }
 
 static inline uint8_t inc(uint8_t value)
