@@ -6,6 +6,22 @@
  */
  
  
+/***********************************************************************************************
+ * transmitter.c
+ *
+ * Brief Description:
+ * This module configures all transmitter-side peripherals required to sample joystick inputs
+ * and transmit them wirelessly using an nRF24L01+ in PTX mode. It enables global interrupts,
+ * initializes SPI for radio communication, configures Timer1 as the ADC auto-trigger source,
+ * initializes the ADC to sample multiple joystick channels into the circular queue, initializes
+ * the RF transmitter, starts continuous ADC conversions, and initializes USART.
+ *
+ * Functions:
+ *   - transmitter_config
+ *
+ ***********************************************************************************************/
+
+ 
 #include "adc.h"
 #include "spi.h"
 #include "common.h"
@@ -14,15 +30,6 @@
 #include <avr/interrupt.h>
 
 
-/**
- * @brief  Configure all transmitter-side peripherals:
- *         1. Enable global interrupts.
- *         2. Initialize SPI for nRF24L01+ communication.
- *         3. Initialize Timer1 as ADC auto-trigger source.
- *         4. Initialize ADC for joystick sampling.
- *         5. Initialize nRF24L01+ as a transmitter.
- *         6. Start continuous ADC conversions.
- */
 void transmitter_config()
 {
   sei();		  

@@ -20,7 +20,6 @@ void writeAddress(uint8_t pipe,uint8_t *addr,uint8_t size);
 uint8_t readRegister(uint8_t reg);
 void get_Received_Data(JoystickData *joystick);
 void send_ACK_Payload(uint8_t *payload, uint32_t len);
-void init_interrupt_pin(void);
 
 extern volatile int8_t availableData;   /*This flag is activated when the RF module places data in the RX_FIFO register*/
 

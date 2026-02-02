@@ -6,121 +6,117 @@
  */
 
 
-/******************************************************************************************************
+ /***********************************************************************************************
  * usart.c
  *
  * Brief Description:
- * This module provides basic USART routines on the ATmega328P.
- * It configures the USART peripheral, handles transmit interrupts, and allows sending single
- * bytes or null-terminated strings to a host terminal or another device. Useful for printing runtime data
- * (e.g Joystick values) 
+ * This module provides interrupt-driven USART transmission on the ATmega328P for sending
+ * joystick data (to FC), telemetry (to Bluetooth HC-06), or debug output. Uses UDRE interrupt
+ * for non-blocking TX; receiver is also enabled for telemetry from FC. Supports single bytes,
+ * buffers, and null-terminated strings.
  *
- * Public Functions:
- *   - void USART_Init(unsigned int ubrrn);
- *       Configures baud rate, frame format, and enables the transmitter.
- *
- *   - void USART_Send(uint8_t info);
- *       Queues a single byte for transmission via interrupt-driven method.
- *
- *   - void USART_Send_String(const char* str);
- *       Sends a null-terminated string by calling USART_Send for each character.
+ * Functions:
+ *   - USART_Init
+ *   - USART_Send
+ *   - USART_Send_Char
+ *   - USART_Send_String
  *
  * Interrupt Service Routines:
- *   - ISR(USART_UDRE_vect):
- *       Triggered when the USART Data Register is empty (ready to accept next byte).
- *       Writes the next byte into UDR0, disables the UDRE interrupt, and sets a flag to
- *       indicate readiness for more data.
+ *   - ISR(USART_UDRE_vect)
+ *   - ISR(USART_RX_vect) 
  *
- *****************************************************************************************************/
+ ***********************************************************************************************/
+
  
 #include "common.h"
 #include <avr/interrupt.h>
 
 
 volatile uint8_t data;
-volatile uint8_t ready = 1;	/* At startup, USART is ready to send data */
-
+volatile uint8_t ready = 1; /* Transmitter ready flag (1 = idle) */
 
 
 /**
- * @brief  USART Data Register Empty interrupt service routine.
- *         Sends the next byte in 'data' by writing to UDR0, then disables the interrupt
- *         until the next call to USART_Send. Sets 'ready' flag high to allow queuing
- *         of another byte.
+ * @brief  USART Data Register Empty (UDRE) interrupt service routine.
+ *         Loads pending data into UDR0, disables UDRE interrupt until next byte queued,
+ *         and sets ready flag.
  */
 ISR(USART_UDRE_vect)
 {
-   UDR0 = data;		    /* Send data via USART */
-   UCSR0B &= ~(1<<UDRIE0);  /* Disable UDRE interrupt until next byte is ready */
-   ready = 1;  		    /* Indicate transmitter is ready for new data */
+   UDR0 = data;		        /* Send data via USART */
+   UCSR0B &= ~(1 << UDRIE0); /* Disable UDRE interrupt until next byte is ready */
+   ready = 1;  		        /* Indicate transmitter is ready for new data */
 }
 
 
 /**
- * @brief  Initialize the USART peripheral with the specified baud rate.
- * @param  ubrrn  Value for the UBRR0 register to set the desired baud rate.
- *                (UBRRn = F_CPU/(16 * baud) - 1 in asynchronous normal mode)
+ * @brief  Initialize USART with specified baud rate (normal async mode, 8N1).
+ *         Enables TX/RX + RX complete interrupt.
  *
- * Configures:
- *   - Baud rate registers UBRR0H:UBRR0L
- *   - Frame format: 8 data bits, no parity, 1 stop bit (8N1)
- *   - Disables double speed (normal mode)
- *   - Enables transmitter and receiver
+ * @param  ubrrn  Baud rate register value: F_CPU / (16 * baud) - 1.
  */
 void USART_Init(unsigned int ubrrn)
 {
-   PRR &= ~(1<<PRUSART0);			 	    /* Disable power reduction for USART0 */	
+   PRR &= ~(1<<PRUSART0);			 	  /* Enable USART0 power */
+
    /* Set Baud rate */			  
    UBRR0H = (uint8_t)(ubrrn>>8);
    UBRR0L = (uint8_t)(ubrrn);
    
-   UCSR0C &= (~(1<<UMSEL01) & ~(1<<UMSEL00) & ~(1<<USBS0)); /* Asynchronous mode, 1 stop bit */
-   UCSR0A &= ~(1<<U2X0); 				    /* Normal speed (disable double speed) */
+   /* Async normal mode, 1 stop bit, no double speed */
+   UCSR0C &= ~((1 << UMSEL01) | (1 << UMSEL00) | (1 << USBS0)); 
+   UCSR0A &= ~(1 << U2X0); 				  
    
-   /* Set character size to 8 bits: UCSZ01=1, UCSZ00=1, UCSZ02=0 */
-   UCSR0C |= (1<< UCSZ01) | (1<<UCSZ00);  
-   UCSR0B &= ~(1<<UCSZ02);   
+  /* 8 data bits */
+   UCSR0C |=  (1 << UCSZ01) | (1 << UCSZ00);  
+   UCSR0B &= ~(1 << UCSZ02);   
    
-   UCSR0B |= (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);			       	    /* Enable transmitter and receiver*/ 
+   /* Enable TX, RX, and RX complete interrupt */
+   UCSR0B |= (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);			       	   
 }
 
 
 /**
- * @brief  Send a single byte via USART using interrupt-driven transmit.
- * @param  info  The byte to be sent over USART.
+ * @brief  Blocking send of a multi-byte buffer via interrupt-driven TX.
+ *         Waits for transmitter to be ready before queuing each byte.
  *
- * Waits until the previous byte is sent (ready == 1), then loads 'data' and enables
- * the UDRE interrupt, which will fire and write the byte into UDR0.
+ * @param  buf  Buffer of bytes to send.
+ * @param  len  Number of bytes.
  */
 void USART_Send(uint8_t* buf, uint8_t len)
 {    uint8_t i;
      for(i=0;i<len;i++){
-        while(!ready);	     /* Wait until previous transmission completes */
+        while(!ready);	       /* Wait for previous TX complete */
         ready = 0;	
-        data = *(&buf[i]);   
-        UCSR0B |= (1<<UDRIE0);  /* Enable UDRE interrupt to send next byte */ 
+        data = buf[i];         /* Queue next byte */
+        UCSR0B |= (1<<UDRIE0); /* Enable UDRE to transmit */
      }   	
 }
 
+
+/**
+ * @brief  Blocking send of a single character via interrupt-driven TX.
+ *
+ * @param  c  Character to send.
+ */
 void USART_Send_Char(char c)
 {
-   while(!ready);	     /* Wait until previous transmission completes */
+   while(!ready);	         /* Wait FOR previous transmission to complete */
    ready = 0;	
    data = (uint8_t) c;   
-   UCSR0B |= (1<<UDRIE0);  /* Enable UDRE interrupt to send next byte */  
+   UCSR0B |= (1 << UDRIE0); /* Trigger TX */  
 }
 
 /**
- * @brief  Send a null-terminated string via USART.
- * @param  str  Pointer to the String to transmit.
+ * @brief  Blocking send of a null-terminated string.
  *
- * Iterates through each character in the string until the terminating '\0' is reached,
- * passing each character to USART_Send for interrupt-driven transmission.
+ * @param  str  Pointer to string.
  */
 void USART_Send_String(const char* str)
 {
-    while(*str){	    /* Loop until end of string '\0' */
-    	USART_Send_Char(*str++);
+   while(*str)
+   {	    
+      USART_Send_Char(*str++);  /* Send char-by-char */
 	}
 }
 

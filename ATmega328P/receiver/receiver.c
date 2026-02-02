@@ -5,27 +5,34 @@
  * See the LICENSE file in the root of the repository for full license text.
  */
  
+
+/***********************************************************************************************
+ * receiver.c
+ *
+ * Brief Description:
+ * This module configures all receiver-side hardware needed to operate the nRF24L01+ joystick
+ * link and telemetry return path. It enables global interrupts, initializes the SPI interface,
+ * configures the FC synchronization interrupt pin (used to signal that telemetry data is ready in the circular queue), 
+ * initialices the RF transceiver as a receiver and starts listening for joystick frames and ACK payload exchanges.
+ *  
+ * Functions:
+ *   - receiver_config
+ *
+ ***********************************************************************************************/
+
+ 
 #include "spi.h"
 #include "radio_receiver.h"
 #include "common.h"
 #include <avr/interrupt.h>
 
 
-/**
- * @brief  Configure all receiver-side peripherals:
- *         1. Enable global interrupts.
- *         2. Initialize SPI for nRF24L01+ communication.
- *         3. Initialize PWM output (Timer1) for two servos.
- *         4. Initialize Timer0 for PWM synchronization.
- *         5. Start PWM signals on OC1A/OC1B.
- *         6. Initialize nRF24L01+ as a receiver.
- *         7. Begin listening for incoming RF packets (pull CE high).
- */
-void receiver_config(){
-  sei(); 		            /*Set Global Interruptions, from now, we can accept hardware interrupts*/
-  SPI_Init();		        /*Initialice the SPI feature*/		       /*We start generating PWM signals*/
-  init_interrupt_pin();
-  RF_Receiver_Init();  /*We initialice the RF module as a receiver*/
-  Radio_Listen();	     /*We start listening for incoming packets*/
+void receiver_config()
+{
+  sei(); 		              /* Enable global interrupts so RF IRQ (INT0) and other ISRs can fire */
+  SPI_Init();		          /* Initialize SPI interface used by the nRF24L01+ */		      
+  init_fc_sync_irq_pin(); /* Configure FC->receiver sync interrupt pin for telemetry-ready signaling */
+  RF_Receiver_Init();     /* Initialize and configure the nRF24L01+ in receiver (PRX) mode */
+  Radio_Listen();	        /* Assert CE to start listening for incoming RF packets */
 }
   				  

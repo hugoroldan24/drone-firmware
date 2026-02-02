@@ -5,53 +5,40 @@
  * See the LICENSE file in the root of the repository for full license text.
  */
  
-
 /***********************************************************************************************
  * spi.c
  *
  * Brief Description:
- * This module configures and manages the SPI peripheral on the ATmega328P in master mode.
- * It provides:
- *   - An ISR to handle “transaction complete” events and capture received bytes.
- *   - Initialization of SPI pins and control registers.
- *   - Blocking functions to send a byte and receive a byte via SPI.
+ * This module configures and manages the SPI peripheral on the ATmega328P in master mode for
+ * nRF24L01+ communication. It uses SPI Transfer Complete interrupts to handle transaction
+ * completion asynchronously while providing blocking send/receive APIs for simplicity.
  *
- * Public Functions:
- *   - void SPI_Init(void);
- *       Configures MOSI, SCK, and SS pins, enables SPI in master mode, sets clock phase/polarity,
- *       and enables the SPI interrupt.
- *
- *   - void SPI_Send_Data(uint8_t data);
- *       Sends one byte over SPI and waits (blocking) until the transfer complete ISR sets a flag.
- *
- *   - void SPI_Receive_Data(uint8_t dummy, uint8_t *obtainedData);
- *       Sends a dummy byte to generate clock pulses, waits for transfer complete, and returns
- *       the received byte via pointer.
+ * Functions:
+ *   - SPI_Init
+ *   - SPI_Send_Data
+ *   - SPI_Receive_Data
  *
  * Interrupt Service Routines:
- *   - ISR(SPI_STC_vect):
- *       Triggered when an SPI transfer completes. Reads SPDR into a buffer and signals the main
- *       code that transmission/reception is done.
+ *   - ISR(SPI_STC_vect)
  *
  ***********************************************************************************************/
- 
- 
+
+
 #include "common.h"
 #include <avr/interrupt.h>
 
 
-volatile int8_t spi_tx_done = 0;
-volatile uint8_t receivedData;
+static volatile int8_t spi_tx_done = 0;
+static volatile uint8_t receivedData;
 
 
 /**
  * @brief  SPI Transfer Complete interrupt service routine.
- *         Captures the received byte from the SPI data register (SPDR) into a buffer and
- *         sets a flag so that blocking transfer functions know the transfer is finished.
+ *         Captures received byte from SPDR and signals blocking functions that transfer is done.
  */
 ISR(SPI_STC_vect)
 {
-  receivedData = SPDR;	 /*We get the data from the reception buffer*/
+  receivedData = SPDR;   /* Read received data from SPI data register */
   spi_tx_done = 1;
 }
 
@@ -66,14 +53,13 @@ ISR(SPI_STC_vect)
  */
 void SPI_Init()
 {	
-  DDRB = DDRB | ((1<<DD_MOSI) | (1<<DD_SS_SLAVE) | (1<<DD_CLK));      /* Set MOSI, SCK, and SS_SLAVE as outputs. We set SS_SLAVE as output so that the MCU does not return to slave mode */
-  DDRD |= (1<<DD_SS);
-  SPCR =  SPCR | ((1<<MSTR) | (1<<SPE));                              /* Configure as SPI master and enable SPI */
-  SPCR = SPCR & ((~(1<<CPOL)) & (~(1<<CPHA)));                        /* Clock Polarity = 0, Phase = 0 (SPI mode 0) */
-  SPCR |= (1<<SPIE);						      /* Enable SPI Transfer Complete interrupt */
+  DDRB |=  ((1 << DD_MOSI) | (1 << DD_SS_SLAVE) | (1 << DD_CLK)); /* Set MOSI, SCK, and SS_SLAVE as outputs. We set SS_SLAVE as output so that the MCU does not return to slave mode */
+  DDRD |=   (1 << DD_SS);
+  SPCR |=  ((1 << MSTR) | (1 << SPE));                            /* Configure as SPI master and enable SPI */
+  SPCR &= ~((1 << CPOL) | (1 << CPHA));                           /* Clock Polarity = 0, Phase = 0 (SPI mode 0) */
+  SPCR |=   (1 << SPIE);						                              /* Enable SPI Transfer Complete interrupt */
                                                           
-  PORTD |= (1 << SS_PIN);				 	      /* Set SS_PIN in pull-up mode */
-  /* We don’t need to adjust prescaler bits since default gives 4 MHz SPI clock at 16 MHz CPU */
+  PORTD |=  (1 << SS_PIN);				 	                              /* Set SS_PIN in pull-up mode */
 }
 
 
@@ -86,8 +72,8 @@ void SPI_Init()
  */
 void SPI_Send_Data(uint8_t data)
 {
-  SPDR = data;           /*Send data to Slave*/
-  while(!spi_tx_done);	 /*Wait until transaccion is completed*/
+  SPDR = data;           /* Send data to Slave */
+  while(!spi_tx_done);	 /* Wait until transaction is completed */
   spi_tx_done = 0;                           		     
 }
 
@@ -97,13 +83,13 @@ void SPI_Send_Data(uint8_t data)
  *         - Sends a dummy byte to generate clock pulses.
  *         - Waits for the SPI_STC_vect ISR to set spi_tx_done = 1.
  *         - Reads the received byte from the global buffer into *obtainedData.
- * @param  dummy         Dummy byte to send (often 0xFF or 0x00).
+ * @param  dummy         Dummy byte to send.
  * @param  obtainedData  Pointer to a variable where the received byte will be stored.
  */
 void SPI_Receive_Data(uint8_t dummy, uint8_t *obtainedData)
 {
-  SPDR = dummy;                       /*Send dummy data to Slave*/
+  SPDR = dummy;                 /*Send dummy data to Slave*/
   while(!spi_tx_done);		      /* Wait until transaction is completed */
   spi_tx_done = 0;        			  
-  *obtainedData = receivedData;       /* Return the received byte */                  
+  *obtainedData = receivedData; /* Return the received byte */                  
 }

@@ -6,53 +6,44 @@
  */
  
  
- /***********************************************************************************************************
+ /***********************************************************************************************
  * main.c
  *
  * Brief Description:
- * Entry point for the wireless dual-servo transmitter. Initializes all required peripherals
- * (SPI, ADC auto-trigger, ADC, and nRF24L01+ as transmitter) and enters a loop that waits
- * for ADC conversions to complete. Once both joystick channels are sampled, it packages the
- * data and sends it via RF.
+ * This file contains the application entry point for a bare-metal, cooperative scheduler-based
+ * system. It registers periodic tasks, initializes
+ * the required peripherals for the receiver subsystem, initializes the scheduler, and then
+ * continuously dispatches scheduled tasks in the main loop.
  *
- * Workflow:
- *   1. transmitter_config() initialice ADC, ADC Auto-trigger, SPI, RF module as TX and starts the conversions
- *   2. Timer1 triggers ADC conversions; each completed conversion sets sendData flag.
- *   3. ISR(ADC_vect) stores the new ADC sample in obtainedData and records lastChannel.
- *   4. In main loop, once both channels are read (lastChannel == NUM_ELEMENTS-1), call
- *      sendPaquet() to transmit the data packet via nRF24L01+.
+ * Functions:
+ *   - int main(void);
  *
- ************************************************************************************************************/
+ ***********************************************************************************************/
  
 #include "const.h"
 #include "transmitter.h"
 #include "scheduler.h"
 #include "tx_tasks.h"
 
-/**
- * @brief  Main function for the transmitter firmware.
- *         Initializes all transmitter-side peripherals and enters an infinite loop that:
- *           - Waits for ADC conversion to complete (sendData flag).
- *           - Stores the obtained sample in the joystick.axis array at index lastChannel.
- *           - When both joystick channels are sampled (lastChannel == NUM_ELEMENTS-1),
- *             calls sendPaquet() to send the full packet via the RF module.
- * @return int  Always returns 0.
- */
 
 int main(void)
 {
+   /* Register periodic tasks before starting the scheduler.
+   Cast to void to explicitly ignore the return value (e.g., task ID / status code). */   
+   (void)scheduler_add_task(send_data_task, SEND_DATA_TASK_PERIOD_MS);
+   (void)scheduler_add_task(telemetry_task, TX_TELEMETRY_TASK_PERIOD_MS);
 
-  (void)scheduler_add_task(send_data_task, SEND_DATA_TASK_PERIOD_MS);
-  (void)scheduler_add_task(telemetry_task, TX_TELEMETRY_TASK_PERIOD_MS);
+   /* Initialize hardware/peripherals needed by the scheduled tasks */
+   transmitter_config();	   	       
 
-  transmitter_config();	   	        /* Initialices all the transmitter features*/
+   /* Initialize scheduler internal state/timers after hardware is ready. */
+   scheduler_init();
 
-  scheduler_init();
-
-  while(1){		
-     scheduler_dispatch();
-  }  
-  return 0;
+  /* Main cooperative loop: run ready tasks; must never block for long periods. */
+   while(1){		
+      scheduler_dispatch();
+   }  
+   return 0;
 }
 
 
