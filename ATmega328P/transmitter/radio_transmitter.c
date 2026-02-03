@@ -154,8 +154,12 @@ void RF_Transmitter_Init()
   writeAddress(W_TX_ADDR,tx_address,ADDRESS_WIDTH); 	
 
   /* --- Enable special features for NOACK transmission --- */
-  writeRegister(ACTIVATE,ACTIVATION_KEY); 	 /* Activate features (enable TX_NO_ACK) */
-  writeRegister(W_FEATURE,0x01);	 		       /* EN_NO_ACK_TX: send payloads without ACK */
+  writeRegister(ACTIVATE,ACTIVATION_KEY); 	                   /* Activate features (enable TX_NO_ACK) */
+  writeRegister(W_FEATURE,(1 << EN_DYN_ACK) | (1 << EN_DPL) );	 /* EN_NO_ACK_TX: send payloads without ACK and Dynamic Payload*/
+
+  writeRegister(W_DYNPD,(1 << DPL_P0)) /* Enable dyn. payload length data pipe 0. (required when PRX uses DPL)*/
+
+  /* Auto retransmission is set by default */
 
   /* --- Power up in PTX mode --- */
   writeRegister(W_CONFIG,0x3A); 	 		       /* PWR_UP=1, PRIM_RX=0, enable CRC, mask TX and MAX_RT interrupts */
@@ -163,7 +167,6 @@ void RF_Transmitter_Init()
   _delay_us(1500);                            /* Power-up to Standby-I */  
  	
   /* After configuration, module is in Standby-I until CE=1 */
-
   sendCommand(FLUSH_TX);                       /* Clear TX FIFO */
 }
   

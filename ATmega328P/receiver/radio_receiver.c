@@ -158,8 +158,8 @@ void RF_Receiver_Init()
   /* In PRX with DPL enabled, DYNPD must enable DPL per pipe (set at least pipe 0). [web:10] */
   writeRegister(W_DYNPD, 0xFF); 
 
-  /* AQUI ALOMEJOR HE DE ACTIVAR EL AUTO ACK EN LA PIPE 0, SEGURAMENTE */
-
+  /* Auto Acknowledgent in pipe 0 is set by default */
+  
   /* Flush FIFOs to start from a known state (important when changing modes/features). */
   sendCommand(FLUSH_TX);      
   sendCommand(FLUSH_RX);		    		                              
@@ -179,7 +179,7 @@ void RF_Receiver_Init()
  */
  void Radio_Listen()
  {
-  PORTB |= (1<<CE_PIN); /* CE high */	
+  PORTB |= (1 << CE_PIN); /* CE high */	
   _delay_us(130);       /* RX Setting delay*/			    
  }	    
  

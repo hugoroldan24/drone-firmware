@@ -31,11 +31,8 @@ extern volatile int8_t availableData;
  */
 void receive_data_task(void)
 {
-  static JoystickData joystick;   /* Local joystick data buffer (union defined in common.h) */
-  while(!availableData);					/* Wait until nRF24L01+ external interrupt sets availableData */ 
-  {
-     /* Busy-wait; cooperative scheduler must ensure this does not starve other tasks */
-  } 
+  static JoystickData joystick;       /* Local joystick data buffer (union defined in common.h) */
+  while(!availableData);					    /* Wait until nRF24L01+ external interrupt sets availableData */ 
   availableData = 0;  				 	      /* Reset flag: RX event has been handled */
   writeRegister(W_STATUS,(1<<RX_DS)); /* Clear RX_DS flag on nRF24L01+ (data ready IRQ) */
      

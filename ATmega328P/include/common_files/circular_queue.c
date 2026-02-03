@@ -55,7 +55,7 @@ uint8_t read_element_queue_atomic(uint8_t *buf, uint8_t len, CircularQueue *cq)
    uint8_t num_queue_elem = get_num_elem(cq);
    if(num_queue_elem >= len){
       
-      memcpy_cq(buf,len);
+      memcpy_cq(buf,len,cq);
       return_val = 1;
    }
    atomic_exit(state);

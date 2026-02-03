@@ -42,10 +42,10 @@ ISR(TIMER1_COMPA_vect)
  */
 void Timer1_Init()
 {
-   PRR &= ~(1 << PRTIM1);       /* Enable Timer1 module (disable power reduction) */
-   TCCR1B |= (1 << WGM12);      /* CTC mode, TOP = OCR1A */
-   TCNT1 = 0U;                  /* Clear counter */
-   TIMSK1 |= (1 << OCIE1A);     /* Enable Timer1 Compare Match A interrupt */
+   PRR    &= ~(1 << PRTIM1);     /* Enable Timer1 module (disable power reduction) */
+   TCCR1B |=  (1 << WGM12);      /* CTC mode, TOP = OCR1A */
+   TCNT1   = 0U;                 /* Clear counter */
+   TIMSK1 |=  (1 << OCIE1A);     /* Enable Timer1 Compare Match A interrupt */
 }
 
 
@@ -62,8 +62,5 @@ void delay_us(uint16_t ticks)
    OCR1A = ticks;                       /* Set compare value for desired delay */
    TCCR1B |= (1 << CS11) | (1 << CS10); /* Start Timer1: prescaler 64 (16 MHz / 64) */
    while(!match);                       /* Block until ISR sets match flag */
-   {
-      /* Busy-wait; cooperative scheduler should use this carefully */
-   }
 }
 

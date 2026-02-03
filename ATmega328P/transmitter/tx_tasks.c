@@ -28,7 +28,7 @@ extern volatile uint8_t received_telem;
 
 /* Create an instance for the circular queue*/
 CircularQueue transmitter_cq={0};
-transmitter_cq.size  = CIRCULAR_QUEUE_SIZE_TX;
+transmitter_cq.size  = CIRCULAR_QUEUE_SIZE;
 static uint8_t queue[transmitter_cq.size];
 transmitter_cq.queue = queue;
 
