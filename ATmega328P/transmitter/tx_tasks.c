@@ -25,14 +25,7 @@
 
 
 extern volatile uint8_t received_telem;
-
-/* Create an instance for the circular queue*/
-CircularQueue transmitter_cq={0};
-transmitter_cq.size  = CIRCULAR_QUEUE_SIZE;
-static uint8_t queue[transmitter_cq.size];
-transmitter_cq.queue = queue;
-
-
+extern CircularQueue *transmitter_cq_ptr;
 
 /**
  * @brief  Scheduler task that transmits joystick data frames over the nRF24L01+.
@@ -50,7 +43,7 @@ void send_data_task(void)
    time_elapsed++;                   /* 1 tick ~= 1 ms (the task period is 1 ms) */
 
    /* Read one full joystick frame (NUM_ELEMENTS bytes) from the circular queue atomically. */
-   success = read_element_queue_atomic(joystick.axis,NUM_ELEMENTS,&transmitter_cq);
+   success = read_element_queue_atomic(joystick.axis,NUM_ELEMENTS,transmitter_cq_ptr);
    
    if(!success)
    {

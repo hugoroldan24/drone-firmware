@@ -5,6 +5,7 @@
  * This module implements a lock-free circular queue designed for ISR writes (ADC/USART data) and atomic multi-byte reads (complete joystick/telemetry frames) from main context. ISR writer uses overwrite policy: if full, discards oldest data. Atomic reads only consume complete frames when enough bytes are available.
  *
  * Functions:
+ *   - create_circular_queue
  *   - add_element_queue_ISR
  *   - read_element_queue_atomic
  *
@@ -18,8 +19,22 @@
 
 
 static inline uint8_t get_num_elem(CircularQueue *cq);
-static inline uint8_t inc(uint8_t value, CircularQueue *cq);
+static inline uint8_t inc(uint8_t value, uint8_t size);
 static void memcpy_cq(uint8_t *dst, uint8_t len, CircularQueue *cq);
+
+
+/**
+ * @brief  Function that initialices a circular queue.
+ *         
+ *         
+ */
+void create_circular_queue(CircularQueue *cq, uint8_t size, volatile uint8_t *queue)
+{
+   cq->head  = 0;
+   cq->tail  = 0;
+   cq->queue = queue;  
+   cq->size  = size;
+}
 
 
 /**

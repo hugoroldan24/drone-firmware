@@ -24,6 +24,7 @@
 #include "spi.h"
 #include "radio_receiver.h"
 #include "common.h"
+#include "telemetry.h"
 #include <avr/interrupt.h>
 
 

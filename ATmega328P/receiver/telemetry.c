@@ -26,12 +26,7 @@
 #include <avr/interrupt.h>
 
 static volatile uint8_t rx_flag;
-
-/* Create an instance for the circular queue */
-CircularQueue receiver_cq={0};
-receiver_cq.size  = CIRCULAR_QUEUE_SIZE_RX;
-static uint8_t queue[receiver_cq.size];
-receiver_cq.queue = queue;
+extern CircularQueue *receiver_cq_ptr;
 
 /**
  * @brief  USART RX complete interrupt service routine.
@@ -41,7 +36,7 @@ receiver_cq.queue = queue;
  */
 ISR(USART_RX_vect)
 {
-   add_element_queue_ISR((uint8_t)UDR0,&receiver_cq);   
+   add_element_queue_ISR((uint8_t)UDR0,receiver_cq_ptr);   
 }
 
 
@@ -72,7 +67,7 @@ void do_telemetry(uint8_t* telem_ptr)
     { 
        rx_flag = 0;  /* Clear sync flag: we are about to consume the frame */
        delay_us(48); /* Small delay to ensure all needed bytes are in the circular queue */ 
-       (void)read_element_queue_atomic(telem_ptr,TELEM_FRAME_SIZE,&receiver_cq); /* Fetch full telemetry frame */
+       (void)read_element_queue_atomic(telem_ptr,TELEM_FRAME_SIZE,receiver_cq_ptr); /* Fetch full telemetry frame */
        send_ACK_Payload(telem_ptr,TELEM_FRAME_SIZE);                /* Load telemetry bytes into nRF24L01+ TX FIFO as ACK payload */
     }
 }

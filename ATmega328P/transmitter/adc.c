@@ -33,7 +33,7 @@
 
 
 static volatile uint8_t channel;   /* Next channel to be read */
-extern CircularQueue transmitter_cq;
+extern CircularQueue *transmitter_cq_ptr;
 
 /**
  * @brief  Timer1 Compare Match B interrupt service routine.
@@ -51,10 +51,10 @@ ISR(TIMER1_COMPB_vect)
  */
 ISR(ADC_vect)
 {
-   add_element_queue_ISR((uint8_t) ADCH,&transmitter_cq); /* Store ADC result in circular queue */
+   add_element_queue_ISR((uint8_t) ADCH,transmitter_cq_ptr); /* Store ADC result in circular queue */
    channel ++;
-   channel = (channel >= NUM_ELEMENTS) ? 0 : channel;     /* Wrap around to first channel */
-   ADMUX = (ADMUX & ~ADMUX_MUX) | channel;                /* Select next channel for conversion */ 
+   channel = (channel >= NUM_ELEMENTS) ? 0 : channel;        /* Wrap around to first channel */
+   ADMUX = (ADMUX & ~ADMUX_MUX) | channel;                   /* Select next channel for conversion */ 
 }
 
 /**
@@ -70,7 +70,7 @@ void ADC_Init()
    DDRC   &=  ~((1 << PIN_X1) | (1 << PIN_Y1) |
                 (1 << PIN_X2) | (1 << PIN_Y2)); /* Joystick pins as inputs */
     
-   ADMUX  |=  (1 << REFS0)                      /* AVcc reference */
+   ADMUX  |=  (1 << REFS0);                     /* AVcc reference */
    ADMUX  |=  (1 << ADLAR);                     /* Left-adjust for 8-bit reads from ADCH */
    ADCSRB |=  ((1 << ADTS2) | (1 << ADTS0));    /* Auto-trigger source = Timer1 Compare Match B */
    ADCSRA |=  (1 << ADATE);                     /* Enable auto-triggering */

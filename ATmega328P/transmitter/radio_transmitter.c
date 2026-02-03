@@ -155,9 +155,9 @@ void RF_Transmitter_Init()
 
   /* --- Enable special features for NOACK transmission --- */
   writeRegister(ACTIVATE,ACTIVATION_KEY); 	                   /* Activate features (enable TX_NO_ACK) */
-  writeRegister(W_FEATURE,(1 << EN_DYN_ACK) | (1 << EN_DPL) );	 /* EN_NO_ACK_TX: send payloads without ACK and Dynamic Payload*/
+  writeRegister(W_FEATURE,(1 << EN_DYN_ACK) | (1 << EN_DPL));	 /* EN_NO_ACK_TX: send payloads without ACK and Dynamic Payload*/
 
-  writeRegister(W_DYNPD,(1 << DPL_P0)) /* Enable dyn. payload length data pipe 0. (required when PRX uses DPL)*/
+  writeRegister(W_DYNPD,(1 << DPL_P0)); /* Enable dyn. payload length data pipe 0. (required when PRX uses DPL)*/
 
   /* Auto retransmission is set by default */
 
