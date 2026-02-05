@@ -142,8 +142,8 @@ int mpu_read_acc_gyr (float buf[6])
     /* Wait until FIFO contains at least NUM_BYTES */
 	while(1)
 	{
-		i2c1_perform_action(READ, MPU_I2C_ADDR, FIFO_COUNT_H_R, 2, count_buf);
-		fifo_count = ((uint16_t)count_buf[0] << 8) | (uint16_t)count_buf[1];
+		i2c1_perform_action(READ, MPU_I2C_ADDR, FIFO_COUNT_H_R, 2U, count_buf);
+		fifo_count = ((uint16_t)count_buf[0] << 8U) | (uint16_t)count_buf[1];
 		if(fifo_count >= NUM_BYTES) break;
 		/* Small delay before reading FIFO again */
 		delay_us(FIFO_POLL_US);
@@ -156,17 +156,18 @@ int mpu_read_acc_gyr (float buf[6])
 	for(uint8_t i=0,j = 0;i<NUM_BYTES;i+=2, j++)
 	{
 		/* First half of buffer is ACC, second half is GYR */
-		scale_factor = (i<(NUM_BYTES/2)) ? ACC_SCALE_FACTOR : GYR_SCALE_FACTOR;
+		scale_factor = (i<(NUM_BYTES/2U)) ? ACC_SCALE_FACTOR : GYR_SCALE_FACTOR;
 
 		/* Combine MSB and LSB into int16_t */
 		/* The first byte in the buff is the MSB and the second the LSB */
-		int16_t val = (int16_t)(((uint16_t)raw_buf[i] << 8) | (uint16_t)raw_buf[i+1]);
+		int16_t val = (int16_t)(((uint16_t)raw_buf[i] << 8U) | (uint16_t)raw_buf[i+1]);
 
         /* Apply scaling to get physical units */
 		buf[j] = (float)val/(scale_factor);
 	}
 	return 1;
 }
+
 
 /**
  * @brief EXTI4 interrupt handler triggered by MPU6050 data-ready signal.

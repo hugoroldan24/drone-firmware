@@ -5,6 +5,5 @@
 
 void send_telemetry(Telem_t data);
 
-
 #endif /* TELEMETRY_H_ */
 

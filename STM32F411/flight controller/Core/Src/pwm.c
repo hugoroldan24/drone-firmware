@@ -55,6 +55,7 @@ static void update_timer_init()
 	NVIC_EnableIRQ(TIM4_IRQn);  // Enable TIM4 interrupt in NVIC
 }
 
+
 /**
  * @brief Configures GPIO pins PA6, PA7, PB0, PB1 for alternate function TIM3 PWM output.
  */
@@ -92,10 +93,10 @@ void pwm_init()
 	TIM3->CR1 &= ~TIM_CR1_DIR;
 
     /* Set PWM mode 1 for channels 1-4 */
-	TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M) | (6 << TIM_CCMR1_OC1M_Pos);
-	TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC2M) | (6 << TIM_CCMR1_OC2M_Pos);
-	TIM3->CCMR2 = (TIM3->CCMR2 & ~TIM_CCMR2_OC3M) | (6 << TIM_CCMR2_OC3M_Pos);
-	TIM3->CCMR2 = (TIM3->CCMR2 & ~TIM_CCMR2_OC4M) | (6 << TIM_CCMR2_OC4M_Pos);
+	TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M) | (6U << TIM_CCMR1_OC1M_Pos);
+	TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC2M) | (6U << TIM_CCMR1_OC2M_Pos);
+	TIM3->CCMR2 = (TIM3->CCMR2 & ~TIM_CCMR2_OC3M) | (6U << TIM_CCMR2_OC3M_Pos);
+	TIM3->CCMR2 = (TIM3->CCMR2 & ~TIM_CCMR2_OC4M) | (6U << TIM_CCMR2_OC4M_Pos);
 
     /* Enable preload registers for all channels to avoid immediate update on CCR change */
 	TIM3->CCMR1 |= (TIM_CCMR1_OC1PE | TIM_CCMR1_OC2PE);

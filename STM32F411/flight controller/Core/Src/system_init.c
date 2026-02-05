@@ -3,8 +3,9 @@
  * @brief																	 *
  * This module configures the system clock to 100 MHz using the HSE and PLL, *
  * enables access to GPIO clocks, grants access to the FPU, and sets NVIC	 *
- * interrupt priorities. All functions defined here are invoked inside		 *
- * SystemInit(), which is executed automatically from the Reset_Handler		 *
+ * interrupt priorities. All functions defined here excepd Periph_Init are   * 
+ * invoked inside SystemInit(), which is executed automatically from the     *
+ * Reset_Handler		                                                     *
  * before main().															 *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -16,7 +17,8 @@ static void ClockAcces_Init(void);
 static void FPU_Enable(void);
 static void NVIC_Prio_Config(void);
 
-void SystemInit()
+
+void SystemInit(void)
 {
 	SystemClock_Init();
 	ClockAcces_Init();
@@ -49,7 +51,7 @@ static void SystemClock_Init(void)
 	RCC->PLLCFGR = ((RCC->PLLCFGR) &~(RCC_PLLCFGR_PLLM)) | RCC_PLLCFGR_PLLM_2;
 
 	/* Configure PLLN = 100 → VCO_OUT = 2 MHz * 100 = 200 MHz */
-	RCC->PLLCFGR = (RCC->PLLCFGR &~RCC_PLLCFGR_PLLN) | (100 << RCC_PLLCFGR_PLLN_Pos);
+	RCC->PLLCFGR = (RCC->PLLCFGR &~RCC_PLLCFGR_PLLN) | (100U << RCC_PLLCFGR_PLLN_Pos);
 
 	/* Configure PLLP = 2 → PLLCLK = 200 MHz / 2 = 100 MHz system clock */
 	RCC->PLLCFGR = (RCC->PLLCFGR &~RCC_PLLCFGR_PLLP)  | (0 << RCC_PLLCFGR_PLLP_Pos);
@@ -97,11 +99,11 @@ static void ClockAcces_Init(void)
 static void NVIC_Prio_Config(void)
 {
 	/* Set priority grouping: 4 bits preemption, 0 subpriority */
-	NVIC_SetPriorityGrouping(0x3);
+	NVIC_SetPriorityGrouping(0x03U);
 
 	/* Assign individual priorities (lower = higher priority) */
 	NVIC_SetPriority(TIM4_IRQn   	  , 1);
-	NVIC_SetPriority(DMA2_Stream7_IRQn, 2);
+	NVIC_SetPriority(DMA2_Stream5_IRQn, 2);
 	NVIC_SetPriority(I2C1_EV_IRQn	  , 3);
 	NVIC_SetPriority(EXTI4_IRQn  	  , 3);
 	NVIC_SetPriority(SPI2_IRQn   	  , 4);
@@ -124,4 +126,25 @@ static void FPU_Enable(void)
 	__DSB();
 	__ISB();
 }
+
+
+/**
+ * @brief Initialize all peripherals used by the flight controller.
+ *
+ * This function configures I2C, SPI, UART1 (with DMA), ADC, PWM,
+ * and timers.
+ */
+void Periph_Init()
+{
+	__disable_irq();
+	I2C1_Init();
+	SPI_Init();
+	uart1_txrx_init_dma();
+	init_delay_timer();
+	init_adc();
+	pwm_init();
+	dt_timer_init();
+	__enable_irq();
+}
+
 

@@ -10,6 +10,7 @@
 #include "uart.h"
 #include "dron_structs.h"
 
+
 /**
  * @brief Reads joystick data from UART into the UserControl structure.
  * @param input Pointer to UserControl_t structure to store joystick axis values
@@ -21,6 +22,7 @@ void get_joystick_data(UserControl_t* input)
 	       Order of bytes is important to match channel mapping. */
 	uart1_read_dma(input->axis,FRAME_LEN-1);
 }
+
 
 /**
  * @brief Maps the raw joystick axes to drone control setpoints.

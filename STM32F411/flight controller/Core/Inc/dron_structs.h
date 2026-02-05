@@ -16,17 +16,19 @@
 
 #include <stdint.h>
 
+
 typedef struct {
     float roll;
     float pitch;
     float yaw_rate; /* Since we won't use magnetometer, if we deal with yaw as an angle, it will end up not working so we will work with the angular speed */
 } Attitude_t;
 
+
 typedef struct {
 	Attitude_t  attitude;
 	float 		throttle;
-	uint8_t		type;
 } FlightMessage_t;
+
 
 typedef union {
 	struct{
@@ -39,6 +41,7 @@ typedef union {
 
 } UserControl_t;
 
+
 typedef struct {
     uint16_t motor1_pwm;
     uint16_t motor2_pwm;
@@ -46,11 +49,13 @@ typedef struct {
     uint16_t motor4_pwm;
 } PWM_Outputs_t;
 
+
 typedef struct{
 	float roll;
 	float pitch;
 	float yaw_rate;
 } PID_Outputs_t;
+
 
 typedef struct {
     float kp;           // Proportional gain
@@ -64,10 +69,12 @@ typedef struct {
     float output_max;   // Maximum output limit (1)
 } PID_Controller_t;
 
+
 typedef struct {
 	int32_t  preassure;
 	uint16_t battery_level;
 } Telem_t;
+
 
 #endif /* DRON_STRUCTS_H_ */
 

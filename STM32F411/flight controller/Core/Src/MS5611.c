@@ -69,17 +69,18 @@ static int32_t ms5611_calc_pressure(uint32_t D1, uint32_t D2)
 	int32_t dT   =  (int32_t)D2 - ((int32_t)C5 << 8);
 
     /* Offset at actual temperature */
-	int64_t OFF  =  ((int64_t)C2 << 16) + (((int64_t)C4 * (int64_t)dT) >> 7);
+	int64_t OFF  =  ((int64_t)C2 << 16U) + (((int64_t)C4 * (int64_t)dT) >> 7U);
 
     /* Sensitivity at actual temperature */
-	int64_t SENS =  ((int64_t)C1 << 15) + (((int64_t)C3 * (int64_t)dT) >> 8);
+	int64_t SENS =  ((int64_t)C1 << 15U) + (((int64_t)C3 * (int64_t)dT) >> 8U);
 
     /* Calculate compensated pressure */
-	int64_t temp =  (((int64_t)D1 * SENS) >> 21) - OFF;
-	int32_t P 	 = 	(int32_t)(temp >> 15);
+	int64_t temp =  (((int64_t)D1 * SENS) >> 21U) - OFF;
+	int32_t P 	 = 	(int32_t)(temp >> 15U);
 
 	return P;
 }
+
 
 /**
  * @brief Reads calibration coefficients (C1–C5) from the sensor's PROM.
@@ -93,6 +94,7 @@ static void ms5611_read_calibration()
 	C4 =  get_prom_coeff(PROM_C4_TCO_ADDR);		// Temp coeff of pressure offset
 	C5 =  get_prom_coeff(PROM_C5_TREF_ADDR);	// Reference temperature
 }
+
 
 /**
  * @brief Reads raw ADC data from the MS5611 for a given conversion command.
@@ -118,10 +120,9 @@ static uint32_t get_raw_data(uint8_t command)
 	cs_disable();
 
     /* Combine 3 bytes into a 24-bit integer */
-	uint32_t D = (((uint32_t)buf[0] << 16) | ((uint32_t)buf[1] << 8) | (uint32_t)buf[2]);
-	D &= 0xFFFFFF;
-
-	return D;
+	uint32_t D = (((uint32_t)buf[0] << 16U) | ((uint32_t)buf[1] << 8U) | (uint32_t)buf[2]);
+	
+	return (D &= 0xFFFFFF);
 }
 
 /**
@@ -140,6 +141,6 @@ static uint16_t get_prom_coeff(uint8_t maddr)
 	cs_disable();
 
     /* Combine MSB and LSB into 16-bit coefficient */
-	return (((uint16_t)buf[0] << 8) | (uint16_t)buf[1]);
+	return (((uint16_t)buf[0] << 8U) | (uint16_t)buf[1]);
 }
 

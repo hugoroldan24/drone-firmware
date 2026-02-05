@@ -12,6 +12,7 @@
 __STATIC_INLINE void _delay_ticks(uint32_t ticks);
 static volatile uint8_t flag;
 
+
 /**
  * @brief Initializes Timer 5 for precise delays.
  *        Configures prescaler, counting mode, auto-reload, one-pulse mode,
@@ -49,6 +50,7 @@ void init_delay_timer()
     /* Enable Timer 5 IRQ in NVIC */
 	NVIC_EnableIRQ(TIM5_IRQn);
 }
+
 
 /**
  * @brief Internal tick-based delay.

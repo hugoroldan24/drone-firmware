@@ -2,9 +2,9 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @file FC_tasks.c															 *
  * @brief																	 *
- * This file contains all task definitions and peripheral initializations	 *
- * required for the flight control system. It initializes peripherals,		 *
- * creates FreeRTOS tasks, and defines the main loop of each task that		 *
+ * This file contains all task definitions	                                 *
+ * required for the flight control system. It creates FreeRTOS tasks         *
+ * and defines the main loop of each task that		                         *
  * handles joystick input, IMU processing, PID computation, motor mixing,	 *
  * telemetry, sensor reading, and safety/failsafe mechanisms.				 *
  *																			 *
@@ -27,11 +27,10 @@
 #include "failsafe.h"
 #include "joystick_mapper.h"
 #include "battery_lecture.h"
-#include "uart.h"
 #include "telemetry.h"
 #include "util.h"
 
-void xHandleRCRxTask			 (void* parameters);
+       void xHandleRCRxTask	     (void* parameters);
 static void xHandleIMUTask	     (void* parameters);
 static void xHandleControlTask	 (void* parameters);
 static void xHandleSensorsTask	 (void* parameters);
@@ -39,33 +38,52 @@ static void xHandleTelemetryTask (void* parameters);
 static void xHandleSafetyTask	 (void* parameters);
 static void xHandlePIDErrorTask	 (void* parameters);
 
-TaskHandle_t RC_RX_ID, IMU_ID, CTRL_ID, SENSORS_ID, TELEM_ID, SAFETY_ID, PID_ERROR_ID;
-PWM_Outputs_t ccr;
-QueueHandle_t 	  telem_queue;
-QueueHandle_t 	  flight_data_queue;
-QueueHandle_t 	  pid_error_queue;
+static void set_pid_params(PID_Controller_t *roll, PID_Controller_t *pitch, PID_Controller_t *yaw);
+
+
+TaskHandle_t      RC_RX_ID, IMU_ID, CTRL_ID, SENSORS_ID, TELEM_ID, SAFETY_ID, PID_ERROR_ID;
+PWM_Outputs_t     ccr;
+QueueHandle_t 	  telem_queue_ID;
+QueueHandle_t 	  flight_data_queue_ID;
+QueueHandle_t 	  pid_error_queue_ID;
 SemaphoreHandle_t MPU_Semaphore;
+SemaphoreHandle_t IMU_RX_SYN_Semaphore;
 UserControl_t 	  joystick_data;
 static uint8_t    FAILSAFE_ACTIVATED;
 
-/**
- * @brief Initialize all peripherals used by the flight controller.
- *
- * This function configures I2C, SPI, UART1 (with DMA), ADC, PWM,
- * and timers.
- */
-void Periph_Init()
-{
-	__disable_irq();
-	I2C1_Init();
-	SPI_Init();
-	uart1_txrx_init_dma();
-	init_delay_timer();
-	init_adc();
-	pwm_init();
-	dt_timer_init();
-	__enable_irq();
-}
+
+/* Buffer that the task being created will use as its stack. Note this is
+       an array of StackType_t variables. The size of StackType_t is dependent on
+       the RTOS port. */
+StackType_t   IMU_Task_Stack        [STACK_SIZE_WORDS];
+StackType_t   CTRL_Task_Stack       [STACK_SIZE_WORDS];
+StackType_t   SENSORS_Task_Stack    [STACK_SIZE_WORDS];
+StackType_t   TELEM_Task_Stack      [STACK_SIZE_WORDS];
+StackType_t   SAFETY_Task_Stack     [STACK_SIZE_WORDS];
+StackType_t   PID_ERRORS_Task_Stack [STACK_SIZE_WORDS];
+
+/* Declare static buffers thath will be used to hold the task's data structures (TCB), has to be persistent*/
+StaticTask_t IMU_TCB;
+StaticTask_t CTRL_TCB;
+StaticTask_t SENSORS_TCB;
+StaticTask_t TELEM_TCB;
+StaticTask_t SAFETY_TCB;
+StaticTask_t PID_ERRORS_TCB;
+
+/*Arrays that are at least large enough to hold the maximum number of items that can be in the queues at any one time*/ 
+uint8_t telem_queue       [TELEM_QUEUE_NUM_ELEM       * sizeof(Telemetry_t)];
+uint8_t flight_data_queue [FLIGHT_DATA_QUEUE_NUM_ELEM * sizeof(FlightMessage_t)];
+uint8_t pid_error_queue   [PID_ERROR_QUEUE_NUM_ELEM   * sizeof(FlightMessage_t)];
+
+/* Used to hold the queue's data structure statically.*/
+StaticQueue_t telem_queue_struct;
+StaticQueue_t flight_data_queue_struct;
+StaticQueue_t pid_error_queue_struct;
+
+/* Will be used to hold the semaphore's state.*/
+StaticSemaphore_t MPU_Semaphore_State;
+StaticSemaphore_t IMU_RX_Sync_Semaphore_State;
+
 
 /**
  * @brief Create all FreeRTOS tasks and related synchronization primitives.
@@ -76,49 +94,48 @@ void Periph_Init()
  */
 void createTasks()
 {
-	BaseType_t status;
-
     /* Create RC receiver task (medium priority) */
-	status = xTaskCreate(xHandleRCRxTask,"RC_RX",200,NULL,2,&RC_RX_ID); /* Task 1 */
-	configASSERT(status == pdPASS); 
+	/* This task is created dinamically because it can be deleted and created dinamically */
+    xTaskCreate(xHandleRCRxTask,"RC_RX",200,NULL,2,&RC_RX_ID);
 
     /* Create IMU processing task (medium priority) */
-	status = xTaskCreate(xHandleIMUTask,"IMU",200,NULL,2,&IMU_ID);
-	configASSERT(status == pdPASS);
+	IMU_ID = xTaskCreate(xHandleIMUTask,"IMU",
+		   STACK_SIZE_WORDS,NULL,2,IMU_Task_Stack,&IMU_TCB);
 
     /* Create Control task for PID computation and motor output (high priority) */
-	status = xTaskCreate(xHandleControlTask,"CTRL",200,NULL,5,&CTRL_ID);
-	configASSERT(status == pdPASS);
+	CTRL_ID = xTaskCreateStatic(xHandleControlTask,"CTRL",
+		   STACK_SIZE_WORDS,NULL,5,CTRL_Task_Stack,&CTRL_TCB);
 
     /* Create Sensors task to read battery and pressure sensors (low priority) */
-	status = xTaskCreate(xHandleSensorsTask,"SENSORS",200,NULL,1,&SENSORS_ID);
-	configASSERT(status == pdPASS);
+	SENSORS_ID = xTaskCreateStatic(xHandleSensorsTask,"SENSORS",
+		   STACK_SIZE_WORDS,NULL,1,SENSORS_Task_Stack,&SENSORS_TCB);
 
     /* Create Telemetry task to send data via UART (lowest priority) */
-	status = xTaskCreate(xHandleTelemetryTask,"TELEM",200,NULL,0,&TELEM_ID);
-	configASSERT(status == pdPASS);
+	TELEM_ID = xTaskCreateStatic(xHandleTelemetryTask,"TELEM",
+		   STACK_SIZE_WORDS,NULL,0,TELEM_Task_Stack,&TELEM_TCB);
 
     /* Create Safety/Failsafe task (high priority) */
-	status = xTaskCreate(xHandleSafetyTask,"SAFETY",200,NULL,4,&SAFETY_ID);
-	configASSERT(status == pdPASS);
+	SAFETY_ID = xTaskCreateStatic(xHandleSafetyTask,"SAFETY",
+		   STACK_SIZE_WORDS,NULL,4,SAFETY_Task_Stack,&SAFETY_TCB);
 
     /* Create PID error computation task (medium-high priority) */
-	status = xTaskCreate(xHandlePIDErrorTask,"ERROR",200,NULL,3,&PID_ERROR_ID);
-	configASSERT(status == pdPASS);
+	PID_ERROR_ID = xTaskCreateStatic(xHandlePIDErrorTask,"ERROR",
+		   STACK_SIZE_WORDS,NULL,3,PID_ERRORS_Task_Stack,&PID_ERRORS_TCB);
 
     /* Create queues for inter-task communication */
-	telem_queue = xQueueCreate(6,sizeof(Telemetry_t)); 
-	configASSERT(telem_queue != NULL);
+	telem_queue_ID       = xQueueCreateStatic(TELEM_QUEUE_NUM_ELEM,sizeof(Telemetry_t),
+	                       telem_queue,&telem_queue_struct); 
 
-	flight_data_queue = xQueueCreate(6,sizeof(FlightMessage_t));
-	configASSERT(flight_data_queue != NULL);
+	flight_data_queue_ID = xQueueCreateStatic(FLIGHT_DATA_QUEUE_NUM_ELEM,sizeof(FlightMessage_t),
+                           flight_data_queue,&flight_data_queue_struct);
 
-	pid_error_queue = xQueueCreate(10,sizeof(FlightMessage_t));
-	configASSERT(pid_error_queue != NULL);
+	pid_error_queue_ID   = xQueueCreateStatic(PID_ERROR_QUEUE_NUM_ELEM,sizeof(FlightMessage_t),
+                           pid_error_queue,&pid_error_queue_struct);
 
     /* Semaphore for IMU access */
-	MPU_Semaphore = xSemaphoreCreateBinary();
-	configASSERT(MPU_Semaphore != NULL);
+	MPU_Semaphore        = xSemaphoreCreateBinaryStatic(&MPU_Semaphore_State);
+
+	IMU_RX_SYN_Semaphore = xSemaphoreCreateBinaryStatic(&IMU_RX_Sync_Semaphore_State);
 }
 
 /**
@@ -129,14 +146,15 @@ void createTasks()
  */
 void xHandleRCRxTask(void* parameters)
 {
-	FlightMessage_t setpoint;
-	setpoint.type = SETPOINT;
+	/* Suspend self until activated */
+	vTaskSuspend(NULL);
 
+	FlightMessage_t setpoint;
+	
 	if(!FAILSAFE_ACTIVATED){
 		while(1)
 		{
-            /* Wait for notification to read joystick */
-			ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+            xSemaphoreTake(IMU_RX_SYN_Semaphore);
 
             /* Read joystick axes */
 			get_joystick_data(&joystick_data);
@@ -145,13 +163,7 @@ void xHandleRCRxTask(void* parameters)
 			map_joystick_to_setpoint(joystick_data, &setpoint);
 
             /* Send setpoint to flight data queue */
-			xQueueSend(flight_data_queue,(void *)&setpoint,portMAX_DELAY);
-
-            /* Notify IMU task to proceed */
-			xTaskNotifyGive(IMU_ID);
-
-            /* Small delay to allow other tasks to run */
-			vTaskDelay(pdMS_TO_TICKS(1));
+			xQueueSend(flight_data_queue,(void *)&setpoint,portMAX_DELAY);     
 		}
 	}
 	else{
@@ -164,13 +176,13 @@ void xHandleRCRxTask(void* parameters)
 		};
 		while(1)
 		{
-			ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+            xSemaphoreTake(IMU_RX_SYN_Semaphore);
 			map_joystick_to_setpoint(joystick_data, &setpoint);
-			xQueueSend(flight_data_queue,(void *)&setpoint,portMAX_DELAY);
-			xTaskNotifyGive(IMU_ID);
+			xQueueSend(flight_data_queue,(void *)&setpoint,portMAX_DELAY);			
 		}
 	}
 }
+
 
 /**
  * @brief Task handling IMU measurements.
@@ -180,6 +192,9 @@ void xHandleRCRxTask(void* parameters)
  */
 static void xHandleIMUTask(void* parameters)
 {
+    /* Suspend self until activated */
+	vTaskSuspend(NULL);
+
 	float imu_data[6];
 	FlightMessage_t imu_attitude;
 
@@ -187,29 +202,33 @@ static void xHandleIMUTask(void* parameters)
 	imu_attitude.throttle = 0;
 
     /* Initialize MPU sensor */
+	/* Since this function need the scheduler on but we don't want that any task interrupts it
+	we will suspend all the other tasks so no one preempts us*/
 	init_mpu6050();
+
+	/* Wake up the higher priority task now that we have initialized all the peripherals
+	that required the scheduler to be set.*/
+	vTaskResume(CTRL_ID); 
+	taskYIELD();
 
 	uint32_t lastcall = get_time_now_us();
 
 	while(1)
 	{
-        /* Read accelerometer and gyroscope */
-		mpu_read_acc_gyr(imu_data);
+       /* Read accelerometer and gyroscope */
+	   mpu_read_acc_gyr(imu_data);
 
-        /* Compute pitch, roll, yaw */
-		computeAttitudeFromIMU(imu_data, &imu_attitude.attitude,&lastcall);
+       /* Compute pitch, roll, yaw */
+	   computeAttitudeFromIMU(imu_data, &imu_attitude.attitude,&lastcall);
 
-        /* Send attitude data */
-		xQueueSend(flight_data_queue,(void *)&imu_attitude,portMAX_DELAY);
+	   /* Notify RC task that IMU data is ready */
+	   xSemaphoreGive(IMU_RX_SYN_Semaphore);
 
-        /* Notify RC task that IMU data is ready */
-		xTaskNotifyGive(RC_RX_ID);
+       /* Send attitude data */
+	   xQueueSend(flight_data_queue,(void *)&imu_attitude,portMAX_DELAY);
 
-        /* Wait until RC task finishes */
-		ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
-
-        /* Delay to yield CPU */
-		vTaskDelay(pdMS_TO_TICKS(1));
+       /* Wait until CTRL task sends notification to start again */
+	   ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
 	}
 }
 
@@ -221,6 +240,9 @@ static void xHandleIMUTask(void* parameters)
  */
 static void xHandlePIDErrorTask(void* parameters)
 {
+	/* Suspend self until activated */
+	vTaskSuspend(NULL);
+
 	FlightMessage_t rx_setpoint, rx_imu, pid_error;
 
 	while(1){
@@ -250,31 +272,26 @@ static void xHandlePIDErrorTask(void* parameters)
  */
 static void xHandleControlTask(void* parameters)
 {
-	FlightMessage_t 	  pid_error;
+	/* Suspend self until activated */
+	vTaskSuspend(NULL);
 
-	PID_Controller_t roll_pid_params = {.kp = ROLL_KP,
-										.ki = ROLL_KI,
-										.kd = ROLL_KD,
-										.output_min = ROLL_OUTPUT_MIN,
-										.output_max = ROLL_OUTPUT_MAX
-	};
+	/* Resume the remaining tasks to start normal execution */
+	vTaskResume(PID_ERROR_ID);
+	vTaskResume(RC_RX_ID);
 
-	PID_Controller_t pitch_pid_params = {.kp = PITCH_KP,
-										 .ki = PITCH_KI,
-										 .kd = PITCH_KD,
-										 .output_min = PITCH_OUTPUT_MIN,
-										 .output_max = PITCH_OUTPUT_MAX
-	};
+	FlightMessage_t  pid_error;
+	PID_Controller_t roll_pid_params ;
+	PID_Controller_t pitch_pid_params;
+	PID_Controller_t yaw_pid_params;
+	PID_Outputs_t    output;
 
-	PID_Controller_t yaw_pid_params = {.kp = YAW_KP,
-									   .ki = YAW_KI,
-									   .kd = YAW_KD,
-									   .output_min = YAW_OUTPUT_MIN,
-									   .output_max = YAW_OUTPUT_MAX
-	};
-	PID_Outputs_t output;
 	uint32_t lastcall = 0;
 	float dt;
+
+	const TickType_t xFrequency = pdMS_TO_TICKS(4U);
+
+	set_pid_params(&roll_pid_params, &pitch_pid_params, &yaw_pid_params);
+    xLastWakeTime = xTaskGetTickCount();
 
 	start_PWM();
 	lastcall = get_time_now_us();
@@ -284,11 +301,18 @@ static void xHandleControlTask(void* parameters)
 
 		dt = get_time_elapsed(&lastcall);
 
-		output.roll 	= compute_PID(pid_error.attitude.roll, dt, &roll_pid_params);
-		output.pitch 	= compute_PID(pid_error.attitude.pitch, dt, &pitch_pid_params);
+		output.roll 	= compute_PID(pid_error.attitude.roll,     dt, &roll_pid_params);
+		output.pitch 	= compute_PID(pid_error.attitude.pitch,    dt, &pitch_pid_params);
 		output.yaw_rate = compute_PID(pid_error.attitude.yaw_rate, dt, &yaw_pid_params);
 
 		motor_mixer(output,pid_error.throttle,&ccr); 
+		
+		/* Make sure that all the other tasks except telemetry ones are blocked
+		so that in this delay time they can execute (or IDLE to save power)*/
+		vTaskDelayUntil(&xLastWakeTime,xFrequency); 
+
+		/* Signal IMU task to start a new cycle */
+		xTaskNotifyGive(IMU_ID);
 	}
 }
 
@@ -302,10 +326,17 @@ static void xHandleSensorsTask(void* parameters)
 {
 	Telemetry_t data;
 	TickType_t xLastWakeTime;
-
+    
+	/* Since this function need the scheduler on but we don't want that any task interrupts it
+	we will suspend all the other tasks so no one preempts us*/
 	init_ms5611();
 
-    const TickType_t xFrequency = pdMS_TO_TICKS(200);
+	/* Wake up IMU task so it can initialice his sensor 
+	since it has higher priority, we will be preempted */
+	vTaskResume(IMU_ID); 
+	taskYIELD();
+
+    const TickType_t xFrequency = pdMS_TO_TICKS(200U);
     xLastWakeTime = xTaskGetTickCount();
 
 	while(1)
@@ -324,6 +355,8 @@ static void xHandleSensorsTask(void* parameters)
  */
 static void xHandleTelemetryTask(void* parameters)
 {
+    /* This task is not suspended because it has the lowest priority so does not matter
+	if we suspend it*/
 	Telem_t rx_data;
 	while(1)
 	{
@@ -363,12 +396,40 @@ static void xHandleSafetyTask(void* parameters)
 
 /**
  * @brief Idle task hook called by FreeRTOS when no other task is running.
- *        Puts the MCU into sleep mode to reduce power consumption.
- */void vApplicationIdleHook(void)
+ *        Puts the MCU into sleep mode to reduce power consumption. To execute 
+ *        this handler, configUSE_IDLE_HOOK flag must be set to 1.
+ */
+void vApplicationIdleHook(void)
 {
 	 /* Put the MCU into low-power sleep mode until the next interrupt
 	       SLEEPDEEP bit is 0, so MCU enters standard sleep (not deep sleep) */
 	__WFI();
+}
+
+
+/**
+ * @brief Static function that initialices the pid parameters structs to the desired values
+ * defined in "const.h"        
+ */
+static void set_pid_params(PID_Controller_t *roll, PID_Controller_t *pitch, PID_Controller_t *yaw)
+{
+   roll->kp = ROLL_KP;
+   roll->ki = ROLL_KI;
+   roll->kd = ROLL_KD;
+   roll->output_min = ROLL_OUTPUT_MIN;
+   roll->output_max = ROLL_OUTPUT_MAX;
+
+   pitch->kp = PITCH_KP;
+   pitch->ki = PITCH_KI;
+   pitch->kd = PITCH_KD;
+   pitch->output_min = PITCH_OUTPUT_MIN;
+   pitch->output_max = PITCH_OUTPUT_MAX;
+
+   yaw->kp = YAW_KP;
+   yaw->ki = YAW_KI;
+   yaw->kd = YAW_KD;
+   yaw->output_min = YAW_OUTPUT_MIN;
+   yaw->output_max = YAW_OUTPUT_MAX;
 }
 
 

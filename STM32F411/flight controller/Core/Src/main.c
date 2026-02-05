@@ -14,9 +14,9 @@
  *  - UART: PA9 = TX, PA10 = RX												   *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#include "stm32f411xe.h"
 #include "FC_tasks.h"
 #include "FreeRTOS.h"
+#include "system_init.h"
 #include "task.h"
 
 int main(void)

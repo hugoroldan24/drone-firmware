@@ -16,10 +16,10 @@
 #include "task.h"
 #include <stdint.h>
 
+
 static void adc_callback(void);
-static void init_source_timer(void);
 static volatile BaseType_t pxHigherPriorityTaskWoken;
-volatile uint16_t battery_adc; 	 /* Variable where the latest conversion is stored      */
+static volatile uint16_t   battery_adc; /* Variable where the latest conversion is stored      */
 extern TaskHandle_t SENSORS_ID;  /* Task handle of the task that will execute this code */
 
 /**
@@ -61,13 +61,13 @@ void init_adc(void)
 	/* Enable End of Conversion (EOC) interrupt */
 	ADC1->CR1 |= ADC_CR1_EOCIE;
 
-	/* Enable ADC IRQ in NVIC  */
+	/* Enable ADC IRQ in NVIC */
 	NVIC_EnableIRQ(ADC_IRQn);
 
 	/* Turn on the ADC */
 	ADC1->CR2 |= ADC_CR2_ADON;
-
 }
+
 
 /**
  * @brief  Start a single mode conversion
@@ -77,19 +77,24 @@ void start_battery_lecture(void)
 	ADC1->CR2 |= ADC_CR2_SWSTART;
 }
 
+
 /**
  * @brief  Blocking read of the latest ADC battery measurement.
  *         Busy-waits until the ADC ISR notifies new data
  *         then returns the last conversion value stored in
  *         `battery_adc`.
  */
+
+ //POTENCIAL BLOQUEO, IMAGINA QUE JUSTO DESPUES DE EMPEZAR A TRANSMITIR, NOS PREEMPTAN,
+ //ENTONCES EL ADC CALLBACK ENVIARIA NOTIFICACION, PERO COMO NO HEMOS LLEGADO A BLOQUEARNOS
+ //LUEGO NOS BLOQUEAREMOS Y YA NO SE PUEDE DESHACER. SOLUCION: AÑADIR TIME OUT O SEMÁFORO
 uint16_t read_battery(void)
 {
 	start_battery_lecture();
-	xTaskNotifyWait(0,0,NULL,portMAX_DELAY);
-
+	xTaskNotifyWait(0,0,NULL,pdMS_TO_TICKS(10U)); /* 10 ms timeout to avoid blocking permanently the task */
 	return battery_adc;
 }
+
 
 /**
  * @brief  Store ADC result and signal availability.

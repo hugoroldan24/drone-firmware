@@ -26,6 +26,7 @@ static void dma2_receiver_init(uint32_t src, uint32_t dst1, uint32_t dst2, uint3
 static void dma2_transmitter_init(uint32_t dst);
 static void dma2_uart1_init(void);
 
+
 static volatile uint32_t   tx_len;
 static volatile uint8_t    dma_rx_buffer1[FRAME_LEN];
 static volatile uint8_t    dma_rx_buffer2[FRAME_LEN];
@@ -104,6 +105,8 @@ static void dma2_receiver_init(uint32_t src, uint32_t dst1, uint32_t dst2, uint3
     /* Enable NVIC interrupt for DMA2 Stream5 */
 	NVIC_EnableIRQ(DMA2_Stream5_IRQn);
 }
+
+
 /**
  * @brief Initializes DMA2 Stream 7 for UART1 transmission.
  * @param dst Peripheral data register address (destination).
@@ -237,8 +240,8 @@ uint8_t uart1_read_dma(uint8_t* buf, uint16_t len)
 	DMA2_Stream5->CR |= DMA_SxCR_TCIE;
 
     /* Wait until DMA transfer completes or timeout occurs */
-	/* If after 10 ms the interrupt is not triggered, we assume connection lost*/
-	timeout =ulTaskNotifyTake(pdTRUE,pdMS_TO_TICKS(10));
+	/* If after 100 ms the interrupt is not triggered, we assume connection lost*/
+	timeout =ulTaskNotifyTake(pdTRUE,pdMS_TO_TICKS(100U));
 
     /* Trigger failsafe if timeout occurs (connection lost with the transmitter) */
 	if(timeout == (uint32_t)pdFALSE){
@@ -272,14 +275,15 @@ static void DMA2_Stream5_callback()
 	DMA2_Stream5->CR &= ~DMA_SxCR_TCIE;
 
     /* Update available buffer according to CT bit */
-	if(DMA2_Stream5->CR & DMA_SxCR_CT)		available_buf = 1; /* Segundo buffer disponible */
-	else									available_buf = 2; /* Primer buffer disponible  */
+	if(DMA2_Stream5->CR & DMA_SxCR_CT)		available_buf = 1U; /* Second buffer available */
+	else									available_buf = 2U; /* First buffer available */
 
     /* Notify the RC_RX task from ISR */
 	pxHigherPriorityTaskWoken = pdFALSE;
 	vTaskNotifyGiveFromISR(RC_RX_ID,&pxHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken); //Ceder CPU en caso de haber despertado una tarea de mayor probabilidad que la actual
-}
+	portYIELD_FROM_ISR(pxHigherPriorityTaskWoken); 
+}	
+
 
 /**
  * @brief Handles DMA2 Stream 7 transfer complete interrupt and disables the stream.
