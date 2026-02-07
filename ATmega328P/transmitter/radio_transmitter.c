@@ -142,7 +142,7 @@ void RF_Transmitter_Init()
   writeRegister(W_RF_CH,0x04);          /* Set RF channel to 2.404 GHz (avoid Wi-Fi) */          	    
   writeRegister(W_RF_SETUP,0x0F);		 /* 2 Mbps data rate, 0 dBm, enable LNA gain */
   writeRegister(W_SETUP_AW,0x03);		 /* Address width = 5 bytes */
-  writeRegister(W_STATUS,0x3E);			 /* Clear TX_DS and MAX_RT flags */
+  writeRegister(W_STATUS,0x7E);			 /* Clear TX_DS and MAX_RT flags */
 
   /* Ahora no tenemos porque desactivar auto-retransmit, ya que si el No_ACK esta activo, no importa que esté activado*/
   /* Pero para enviar paquetes y recibir la payload, debemos tenerlo activado para pponer entrar en modo RX*/
@@ -155,9 +155,10 @@ void RF_Transmitter_Init()
 
   /* --- Enable special features for NOACK transmission --- */
   writeRegister(ACTIVATE,ACTIVATION_KEY); 	                   /* Activate features (enable TX_NO_ACK) */
-  writeRegister(W_FEATURE,(1 << EN_DYN_ACK) | (1 << EN_DPL));	 /* EN_NO_ACK_TX: send payloads without ACK and Dynamic Payload*/
+  writeRegister(W_FEATURE,(1 << EN_DYN_ACK_BIT) | (1 << EN_DPL_BIT) |
+                          (1 << EN_ACK_PAY_BIT));	 /* EN_NO_ACK_TX: send payloads without ACK and Dynamic Payload*/
 
-  writeRegister(W_DYNPD,(1 << DPL_P0)); /* Enable dyn. payload length data pipe 0. (required when PRX uses DPL)*/
+  writeRegister(W_DYNPD,(1 << DPL_P0_BIT)); /* Enable dyn. payload length data pipe 0. (required when PRX uses DPL)*/
 
   /* Auto retransmission is set by default */
 

@@ -95,9 +95,9 @@
 #define W_DYNPD             (0x3CU)
 #define W_TX_PAYLOAD        (0xA0U)
 #define W_ACK_PAYLOAD_P0    (0xA8U)   /*Write ACK payload in pipe 0 */
-#define EN_ACK_PAY          (0x02U)   /* Enable Payload with ACK bit */
-#define EN_DPL              (0x04U)   /* Enable Dynamic Payload bit  */
-#define DPL_P0              (0x00U)   /* Enable dyn. payload length data pipe 0 bit*/
+#define EN_ACK_PAY_BIT      (1U)   /* Enable Payload with ACK bit */
+#define EN_DPL_BIT          (2U)   /* Enable Dynamic Payload bit  */
+#define DPL_P0_BIT          (0U)   /* Enable dyn. payload length data pipe 0 bit*/
 #define EN_AA_P0            (0x01U)
 
 /* Read Registers */
@@ -117,7 +117,7 @@
 #define FLUSH_TX           (0xE1U)
 #define ACTIVATE           (0x50U)    /* Follow with ACTIVATION_KEY */
 
-#define EN_DYN_ACK         (0x00U)   /*  Enables the W_TX_PAYLOAD_NOACK command*/
+#define EN_DYN_ACK_BIT     (0U)   /*  Enables the W_TX_PAYLOAD_NOACK command*/
 #define NO_ACK             (1U)
 #define ACK                (0U)
 

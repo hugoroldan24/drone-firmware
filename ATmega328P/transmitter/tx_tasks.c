@@ -75,6 +75,7 @@ void telemetry_task(void)
   
    if(received_telem)  /* Flag set by INT0 ISR when IRQ asserted */
    {
+      writeRegister(W_STATUS,(1<<RX_DS));
       received_telem = 0U;
       get_Telem_Data(telem_data,TELEM_FRAME_SIZE);  /* Read telemetry payload from RX FIFO */
       hc06_send_telemetry(telem_data);              /* Send formatted telemetry via USART to HC-06 */

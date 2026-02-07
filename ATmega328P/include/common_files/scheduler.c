@@ -120,5 +120,5 @@ static void Timer0_Init()
  */
 static void Timer0_Start()
 {
-   TCCR0B |= (1 << CS02) | (1 << CS00);  /* Set prescaler to 16 MHz / 64 = 250 kHz to get an exact number of ticks for counting up to 1 ms*/   
+   TCCR0B |= (1 << CS01) | (1 << CS00);  /* Set prescaler to 16 MHz / 64 = 250 kHz to get an exact number of ticks for counting up to 1 ms*/   
 }

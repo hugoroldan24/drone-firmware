@@ -145,7 +145,7 @@ void RF_Receiver_Init()
   writeRegister(W_RF_SETUP,0x0F);	    	  	 /* 2 Mbps data rate, 0 dBm, enable LNA gain */ 
   writeRegister(W_SETUP_AW,0x03);	   		 /* Address width = 5 bytes */ 
   //writeRegister(W_EN_AA,0x00);	             /* Disable auto-acknowledgment on all pipes */
-  //writeRegister(W_EN_AA,EN_AA_P0);          /* Enable data auto acknowledgment on pipe 0*/
+  writeRegister(W_EN_AA,EN_AA_P0);          /* Enable data auto acknowledgment on pipe 0*/
   writeRegister(W_EN_RXADDR,0x01);	    		 /* Enable only pipe 0 */
   //writeRegister(W_RX_PW_P0,0x04);           /* Static payload length = 4 bytes on pipe 0 */ (no trabajamos con static)
   writeRegister(W_STATUS,(1<<6));          	 /* Clear RX_DS flag */  
@@ -153,7 +153,7 @@ void RF_Receiver_Init()
   /* Pipe 0 address (must match transmitter). */
   writeAddress(W_RX_ADDR_P0,rx_pipe0_address,ADDRESS_WIDTH);      /* Set pipe 0 address */
   writeRegister(ACTIVATE,ACTIVATION_KEY);    		               /* Activate features (enable W_ACK_PAYLOAD) */
-  writeRegister(W_FEATURE,EN_ACK_PAY | EN_DPL);	     		         /*  Enables Payload with ACK and Dynamic Length*/
+  writeRegister(W_FEATURE,(1<<EN_ACK_PAY_BIT) | (1<<EN_DPL_BIT));	     		         /*  Enables Payload with ACK and Dynamic Length*/
 
   /* In PRX with DPL enabled, DYNPD must enable DPL per pipe (set at least pipe 0). [web:10] */
   writeRegister(W_DYNPD, 0xFF); 
