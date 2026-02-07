@@ -7,6 +7,24 @@ The project is still under development — I will continue fixing bugs, refining
 
 ---
 
+## 📑 Table of Contents
+
+## 🌟 Motivation
+
+## 💡 Learning
+
+## 📁 File Structure
+
+## 🧩 System Architecture
+
+## 🛠 Software
+
+## 📦 Hardware
+
+## 🔌 Wiring Diagram
+
+## 📚 References
+
 ## 🧠 Flight Controller (STM32 + FreeRTOS)
 
 The flight controller is the central brain of the drone, responsible for reading sensors, computing control signals, and driving the motors. It is implemented on an **STM32F4** microcontroller and runs **FreeRTOS**, providing a multitasking environment where fast and predictable responses to external events are critical. This allows the system to update motor signals every few milliseconds and react immediately to important events such as low battery or loss of RF communication.
