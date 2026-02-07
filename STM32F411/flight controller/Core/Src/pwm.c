@@ -129,6 +129,7 @@ void start_PWM(void)
     /* Start TIM3 to generate PWM signals */
 	TIM3->CR1 |= TIM_CR1_CEN;
 
+	/* TESTING */
     /* Start TIM4 to synchronize CCR updates */
 	TIM4->CR1 |= TIM_CR1_CEN;
 }
