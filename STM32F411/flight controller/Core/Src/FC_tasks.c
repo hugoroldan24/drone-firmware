@@ -9,7 +9,7 @@
  * telemetry, sensor reading, and safety/failsafe mechanisms.				 *
  *																			 *
  * Tasks are created with specific priorities to ensure the real-time		 *
- * constraints of the flight controller, such as achieving the 4 ms control  *
+ * constraints of the flight controller, such as achieving the 5 ms control  *
  * loop for motor updates.													 *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -39,6 +39,7 @@ static void xHandleSafetyTask	 (void* parameters);
 static void xHandlePIDErrorTask	 (void* parameters);
 
 static void set_pid_params(PID_Controller_t *roll, PID_Controller_t *pitch, PID_Controller_t *yaw);
+static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr);
 
 
 TaskHandle_t      RC_RX_ID, IMU_ID, CTRL_ID, SENSORS_ID, TELEM_ID, SAFETY_ID, PID_ERROR_ID;
@@ -150,7 +151,7 @@ void xHandleRCRxTask(void* parameters)
 	vTaskSuspend(NULL);
 
 	FlightMessage_t setpoint;
-	
+
 	if(!FAILSAFE_ACTIVATED){
 		while(1)
 		{
@@ -288,7 +289,7 @@ static void xHandleControlTask(void* parameters)
 	uint32_t lastcall = 0;
 	float dt;
 
-	const TickType_t xFrequency = pdMS_TO_TICKS(4U);
+	const TickType_t xFrequency = pdMS_TO_TICKS(3U);
 
 	set_pid_params(&roll_pid_params, &pitch_pid_params, &yaw_pid_params);
     xLastWakeTime = xTaskGetTickCount();
@@ -310,6 +311,8 @@ static void xHandleControlTask(void* parameters)
 		/* Make sure that all the other tasks except telemetry ones are blocked
 		so that in this delay time they can execute (or IDLE to save power)*/
 		vTaskDelayUntil(&xLastWakeTime,xFrequency); 
+
+		update_PWM_Outputs(TIM3,ccr);
 
 		/* Signal IMU task to start a new cycle */
 		xTaskNotifyGive(IMU_ID);
@@ -430,6 +433,33 @@ static void set_pid_params(PID_Controller_t *roll, PID_Controller_t *pitch, PID_
    yaw->kd = YAW_KD;
    yaw->output_min = YAW_OUTPUT_MIN;
    yaw->output_max = YAW_OUTPUT_MAX;
+}
+
+
+/**
+ * @brief Updates the PWM output registers of a given timer.
+ * 
+ * This function writes the PWM duty cycle values to the CCR (Capture/Compare) registers
+ * of the specified timer. Each CCR channel corresponds to one motor's ESC on a quadcopter.
+ * 
+ * @param timer Pointer to the TIM peripheral (e.g., TIM1, TIM3) whose CCR registers
+ *              will be updated.
+ * @param ccr   Structure containing the PWM duty cycle values for each motor:
+ *              - motor1_pwm → CCR1
+ *              - motor2_pwm → CCR2
+ *              - motor3_pwm → CCR3
+ *              - motor4_pwm → CCR4
+ * 
+ * @note The timer must be properly configured for PWM mode before calling this function.
+ *       The values in the CCR registers determine the duty cycle and thus the speed
+ *       of each motor via its ESC.
+ */
+static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr)
+{
+   timer->CCR1 = ccr.motor1_pwm;
+   timer->CCR2 = ccr.motor2_pwm;
+   timer->CCR3 = ccr.motor3_pwm;
+   timer->CCR4 = ccr.motor4_pwm;
 }
 
 

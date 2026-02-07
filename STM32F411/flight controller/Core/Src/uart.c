@@ -1,17 +1,26 @@
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * @file uart.c																			 *
- * @brief																				 *
- * This file manages UART1 communication using DMA for minimal CPU intervention.		 *
- * Functions here configure the UART peripheral, set up DMA for both transmit			 *
- * and receive operations, and provide APIs for sending and receiving data.				 *
- * Double-buffering is used for DMA reception to safely handle concurrent access.		 *
- * Direct-to-task notifications from ISRs are used instead of semaphores for efficiency. *
- *  																					 *
- * Pins used:																			 *
- * PA9:  TX																				 *
- * PA10: RX	                                                                             *
- * PC15: Connection between FC and receiver												 *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * @file uart.c																			   *
+ * @brief																				   *
+ * This file manages UART1 communication using DMA for minimal CPU intervention.		   *
+ * Functions here configure the UART peripheral, set up DMA for both transmit			   *
+ * and receive operations, and provide APIs for sending and receiving data.				   *
+ * Double-buffering is used for DMA reception to safely handle concurrent access.		   *
+ * Direct-to-task notifications from ISRs are used instead of semaphores for efficiency.   *
+ *                                                                                         *
+ * In reception, desabling the transfer complete interrupt does not stop or pause the DMA  *
+ * from receiving bytes in the background. The DMA continues to store incoming bytes       *
+ * sequentially, maintaining the correct order.                                            *
+ *                                                                                         *
+ * Enabling the ISR only provides a point where we can safely access the fully received    *
+ * data. This ensures that when the interrupt occurs, the buffer already contains the      *
+ * joystick position values in the expected order.                                         *
+ *  																					   *
+ * Pins used:																			   *
+ * PA9:  TX																				   *
+ * PA10: RX	                                                                               *
+ * PC15: Connection between FC and receiver												   *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 
 #include <stdint.h>
 #include "const.h"
@@ -20,6 +29,7 @@
 #include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
+
 
 static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk, uint32_t BaudRate);
 static void dma2_receiver_init(uint32_t src, uint32_t dst1, uint32_t dst2, uint32_t len);
@@ -35,6 +45,7 @@ static volatile uint8_t    available_buf;
 static volatile BaseType_t pxHigherPriorityTaskWoken;
 extern TaskHandle_t 	   RC_RX_ID, SAFETY_ID;
 static uint32_t 		   timeout;
+
 
 /**
  * @brief Configures the USART baud rate based on the peripheral clock and desired baud rate.
@@ -54,6 +65,7 @@ static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk, uint32_
     /* Configure the BRR register */
 	USARTx->BRR = (mantissa << 4) | (fraction & 0x0F);
 }
+
 
 /**
  * @brief Initializes DMA2 Stream 5 for UART1 reception using double-buffered circular mode.
@@ -195,6 +207,7 @@ void uart1_txrx_init_dma()
     /* Initialize DMA streams for UART1 */
     dma2_uart1_init();
 }
+
 
 /**
  * @brief Starts a DMA transmission on UART1 with the given data buffer.
