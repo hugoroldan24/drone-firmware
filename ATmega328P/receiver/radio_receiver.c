@@ -156,7 +156,7 @@ void RF_Receiver_Init()
   writeRegister(W_FEATURE,(1<<EN_ACK_PAY_BIT) | (1<<EN_DPL_BIT));	     		         /*  Enables Payload with ACK and Dynamic Length*/
 
   /* In PRX with DPL enabled, DYNPD must enable DPL per pipe (set at least pipe 0). [web:10] */
-  writeRegister(W_DYNPD, 0xFF); 
+  writeRegister(W_DYNPD, (1 << DPL_P0_BIT)); 
 
   /* Auto Acknowledgent in pipe 0 is set by default */
   

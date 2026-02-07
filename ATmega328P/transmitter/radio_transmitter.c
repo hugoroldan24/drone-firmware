@@ -148,7 +148,7 @@ void RF_Transmitter_Init()
   /* Pero para enviar paquetes y recibir la payload, debemos tenerlo activado para pponer entrar en modo RX*/
   //writeRegister(W_SETUP_RETR,0x00);	       	/* Disable auto-retransmit */
 
-  //writeRegister(W_EN_AA,0x00);				/* Disable auto-acknowledgment on all pipes */
+  writeRegister(W_EN_AA,0x00);				/* Disable auto-acknowledgment on all pipes */
 
   /* TX address (must match receiver pipe 0). */
   writeAddress(W_TX_ADDR,tx_address,ADDRESS_WIDTH); 	
