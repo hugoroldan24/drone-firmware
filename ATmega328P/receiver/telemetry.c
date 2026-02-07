@@ -46,10 +46,6 @@ ISR(USART_RX_vect)
  *         telemetry frame into the USART/circular queue using DMA. Sets rx_flag
  *         so the telemetry task can assemble and send an ACK payload.
  */
-ISR(INT1_vect)
-{
-   rx_flag = 1;
-}
 
 
 /**
@@ -63,13 +59,9 @@ ISR(INT1_vect)
  */
 void do_telemetry(uint8_t* telem_ptr)
 {
-    if(rx_flag) /* This flag will only be set when the FC sends TELEM_FRAME_SIZE bytes using DMA */
-    { 
-       rx_flag = 0;  /* Clear sync flag: we are about to consume the frame */
-       delay_us(48); /* Small delay to ensure all needed bytes are in the circular queue */ 
-       (void)read_element_queue_atomic(telem_ptr,TELEM_FRAME_SIZE,receiver_cq_ptr); /* Fetch full telemetry frame */
-       send_ACK_Payload(telem_ptr,TELEM_FRAME_SIZE);                /* Load telemetry bytes into nRF24L01+ TX FIFO as ACK payload */
-    }
+     
+   send_ACK_Payload(telem_ptr,TELEM_FRAME_SIZE);                /* Load telemetry bytes into nRF24L01+ TX FIFO as ACK payload */
+   
 }
 
 

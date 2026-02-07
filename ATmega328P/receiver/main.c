@@ -27,13 +27,10 @@ volatile uint8_t queue[CIRCULAR_QUEUE_SIZE_RX];
 
 int main(void)
 {  
-   /* Initialice the circular queue that will be used for the telemetry system */
-   create_circular_queue(receiver_cq_ptr,(uint8_t)CIRCULAR_QUEUE_SIZE_RX,queue);
    
    /* Register periodic tasks before starting the scheduler.
    Cast to void to explicitly ignore the return value (e.g., task ID / status code). */
    (void)scheduler_add_task(receive_data_task,RECEIVE_DATA_TASK_PERIOD_MS);
-   (void)scheduler_add_task(telemetry_task,RX_TELEMETRY_TASK_PERIOD_MS);
  
    /* Initialize hardware/peripherals needed by the scheduled tasks
       and put the receiver into listening mode. */

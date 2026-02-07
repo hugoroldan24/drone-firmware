@@ -36,19 +36,11 @@ extern CircularQueue *transmitter_cq_ptr;
  */
 void send_data_task(void)
 {
-   static JoystickData joystick;     /* Buffer for one complete joystick frame (4 bytes) */	           
+   static JoystickData joystick = {10, 20, 30, 40};    
 
    static uint8_t time_elapsed;      /* Counts scheduler invocations */
    uint8_t success;
    time_elapsed++;                   /* 1 tick ~= 1 ms (the task period is 1 ms) */
-
-   /* Read one full joystick frame (NUM_ELEMENTS bytes) from the circular queue atomically. */
-   success = read_element_queue_atomic(joystick.axis,NUM_ELEMENTS,transmitter_cq_ptr);
-   
-   if(!success)
-   {
-      return;    /* No complete frame available yet */
-   }
 
    /* Periodically request ACK to receive telemetry back in the ACK payload. */
    if(time_elapsed == SEND_ACK_PERIOD_MS) /* Comprobamos si ha pasado el tiempo, si es el caso pues enviamos un paquete pidiendo ACK */

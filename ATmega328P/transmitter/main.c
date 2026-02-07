@@ -35,9 +35,7 @@ volatile uint8_t queue[CIRCULAR_QUEUE_SIZE_TX];
 
 int main(void)
 {
-   /* Initialice the circular queue that will be used for saving the ADC values */
-   create_circular_queue(transmitter_cq_ptr,(uint8_t)CIRCULAR_QUEUE_SIZE_TX,queue);
-   
+  
    /* Register periodic tasks before starting the scheduler.
    Cast to void to explicitly ignore the return value (e.g., task ID / status code). */   
    (void)scheduler_add_task(send_data_task, SEND_DATA_TASK_PERIOD_MS);

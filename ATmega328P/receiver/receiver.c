@@ -32,7 +32,6 @@ void receiver_config()
 {
   sei(); 		              /* Enable global interrupts so RF IRQ (INT0) and other ISRs can fire */
   SPI_Init();		          /* Initialize SPI interface used by the nRF24L01+ */		      
-  init_fc_sync_irq_pin(); /* Configure FC->receiver sync interrupt pin for telemetry-ready signaling */
   RF_Receiver_Init();     /* Initialize and configure the nRF24L01+ in receiver (PRX) mode */
   Radio_Listen();	        /* Assert CE to start listening for incoming RF packets */
 }

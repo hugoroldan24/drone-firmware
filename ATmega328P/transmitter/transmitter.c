@@ -34,9 +34,6 @@ void transmitter_config()
 {
   sei();		  
   SPI_Init();		  
-  Autotrigger_Init();     
-  ADC_Init(); 		  
   RF_Transmitter_Init();  	  
-  start_ADC_conversion();
   USART_Init(UBRR);
 }

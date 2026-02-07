@@ -29,30 +29,28 @@ static char ascii_str[4];
  */
 void hc06_send_telemetry(uint8_t *buf)
 {   
-   USART_Send_String("Battery Voltage: ");
-   
+   USART_Send_String("10 ? =  ");
+
    sprintf(ascii_str,"%u",buf[0]);             /* Integer part */
    USART_Send_String((const char*)ascii_str);
    
-   USART_Send_Char('.');
-   
+   USART_Send_Char('\n');
+   USART_Send_String("20 ? =  ");
+
    sprintf(ascii_str,"%u",buf[1]);              /* Decimal part */
    USART_Send_String((const char*)ascii_str);
-   
-   USART_Send_String(" V");
    USART_Send_Char('\n');
 
-   USART_Send_String("Height: ");
-   
-   sprintf(ascii_str,"%u",buf[2]);              /* Integer part */
+   USART_Send_String("30 ? =  ");
+
+   sprintf(ascii_str,"%u",buf[2]);              /* Decimal part */
    USART_Send_String((const char*)ascii_str);
-   
-   USART_Send_Char('.');
-   
+   USART_Send_Char('\n');
+
+   USART_Send_String("40 ? =  ");
+
    sprintf(ascii_str,"%u",buf[3]);              /* Decimal part */
    USART_Send_String((const char*)ascii_str);
-   
-   USART_Send_String(" m");
    
    USART_Send_Char('\n');                       /* Line breaks for readability */
    USART_Send_Char('\n');

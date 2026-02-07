@@ -23,6 +23,7 @@
 
 extern volatile int8_t availableData;
 
+static char ascii_str[4];
 /**
  * @brief  Task that waits for RF joystick data and sends it to the flight controller.
  *         Blocks until the RF IRQ sets availableData, clears the nRF24L01+ RX interrupt flag,
@@ -38,8 +39,34 @@ void receive_data_task(void)
      
   get_Received_Data(&joystick); 			/* Read joystick payload from RX FIFO into local struct */
      
-  /* Send joystick data (all axes) to the flight controller over USART */
-  USART_Send(joystick.axis, NUM_ELEMENTS);
+  USART_Send_String("10 ? =  ");
+
+  sprintf(ascii_str,"%u",joystick.axis[0]);             /* Integer part */
+  USART_Send_String((const char*)ascii_str);
+   
+  USART_Send_Char('\n');
+  USART_Send_String("20 ? =  ");
+
+  sprintf(ascii_str,"%u",joystick.axis[1]);              /* Decimal part */
+  USART_Send_String((const char*)ascii_str);
+  USART_Send_Char('\n');
+
+  USART_Send_String("30 ? =  ");
+
+  sprintf(ascii_str,"%u",joystick.axis[2]);              /* Decimal part */
+  USART_Send_String((const char*)ascii_str);
+  USART_Send_Char('\n');
+
+  USART_Send_String("40 ? =  ");
+
+  sprintf(ascii_str,"%u",joystick.axis[3]);              /* Decimal part */
+  USART_Send_String((const char*)ascii_str);
+   
+  USART_Send_Char('\n');                       /* Line breaks for readability */
+  USART_Send_Char('\n');
+  USART_Send_Char('\n');
+
+  do_telemetry(joystick.axis);
 }
 
 
