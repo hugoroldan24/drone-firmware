@@ -32,12 +32,16 @@ extern volatile int8_t availableData;
 void receive_data_task(void)
 {
   static JoystickData joystick;       /* Local joystick data buffer (union defined in common.h) */
+  static uint8_t status;
+
   while(!availableData);					    /* Wait until nRF24L01+ external interrupt sets availableData */ 
   availableData = 0;  				 	      /* Reset flag: RX event has been handled */
-  writeRegister(W_STATUS,(1<<RX_DS)); /* Clear RX_DS flag on nRF24L01+ (data ready IRQ) */
      
   get_Received_Data(&joystick); 			/* Read joystick payload from RX FIFO into local struct */
-     
+  
+  status = readRegister(R_STATUS);
+  writeRegister(W_STATUS,status);
+  
   /* Send joystick data (all axes) to the flight controller over USART */
   USART_Send(joystick.axis, NUM_ELEMENTS);
 }

@@ -126,6 +126,7 @@ void writeAddress(uint8_t pipe,uint8_t *addr,uint8_t size)
 void RF_Receiver_Init()
 {
   uint8_t rx_pipe0_address[] = {0xE7,0xE7,0xE7,0xE7,0xE7};
+  uint8_t tx_address[] = {0xE7,0xE7,0xE7,0xE7,0xE7};
 
   /* --- Configure INT0 (PD2) as the nRF24L01+ IRQ input (active low) --- */
   DDRD  &= ~(1 << DD_INT0);                  /* INT0 as input */
@@ -148,10 +149,12 @@ void RF_Receiver_Init()
   writeRegister(W_EN_AA,EN_AA_P0);          /* Enable data auto acknowledgment on pipe 0*/
   writeRegister(W_EN_RXADDR,0x01);	    		 /* Enable only pipe 0 */
   //writeRegister(W_RX_PW_P0,0x04);           /* Static payload length = 4 bytes on pipe 0 */ (no trabajamos con static)
-  writeRegister(W_STATUS,(1<<6));          	 /* Clear RX_DS flag */  
+  writeRegister(W_STATUS,0x7E);          	 /* Clear RX_DS flag and all the flags */  
 
   /* Pipe 0 address (must match transmitter). */
   writeAddress(W_RX_ADDR_P0,rx_pipe0_address,ADDRESS_WIDTH);      /* Set pipe 0 address */
+  writeAddress(W_TX_ADDR,tx_address,ADDRESS_WIDTH);      /* Set transmitter address */
+
   writeRegister(ACTIVATE,ACTIVATION_KEY);    		               /* Activate features (enable W_ACK_PAYLOAD) */
   writeRegister(W_FEATURE,(1<<EN_ACK_PAY_BIT) | (1<<EN_DPL_BIT));	     		         /*  Enables Payload with ACK and Dynamic Length*/
 

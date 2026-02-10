@@ -124,7 +124,8 @@ void writeAddress(uint8_t pipe,uint8_t *addr,uint8_t size)
 void RF_Transmitter_Init()
 {
   uint8_t tx_address[] = {0xE7,0xE7,0xE7,0xE7,0xE7};
-   
+  uint8_t rx_pipe0_address[] = {0xE7,0xE7,0xE7,0xE7,0xE7};
+
   /* --- Configure INT0 (PD2) as the nRF24L01+ IRQ input (active low) --- */
   DDRD  &= ~(1 << DD_INT0);    /* INT0 as input */
   PORTD |= (1 << INT0_PIN);    /* Enable pull-up on PD2 */
@@ -148,10 +149,17 @@ void RF_Transmitter_Init()
   /* Pero para enviar paquetes y recibir la payload, debemos tenerlo activado para pponer entrar en modo RX*/
   //writeRegister(W_SETUP_RETR,0x00);	       	/* Disable auto-retransmit */
 
-  writeRegister(W_EN_AA,0x00);				/* Disable auto-acknowledgment on all pipes */
+  writeRegister(W_EN_AA,0x01);				/* Disable auto-acknowledgment on all pipes */
+
+  writeRegister(W_EN_RXADDR,0x01);	    		 /* Enable only pipe 0 */
+
+  writeRegister(W_STATUS,0x7E);          	 /* Clear RX_DS flag and all the flags */  
 
   /* TX address (must match receiver pipe 0). */
-  writeAddress(W_TX_ADDR,tx_address,ADDRESS_WIDTH); 	
+  writeAddress(W_TX_ADDR,tx_address,ADDRESS_WIDTH); 
+  
+  /* Set pipe 0 address (to receive ACKs) */
+  writeAddress(W_RX_ADDR_P0,rx_pipe0_address,ADDRESS_WIDTH);      
 
   /* --- Enable special features for NOACK transmission --- */
   writeRegister(ACTIVATE,ACTIVATION_KEY); 	                   /* Activate features (enable TX_NO_ACK) */
@@ -169,6 +177,7 @@ void RF_Transmitter_Init()
  	
   /* After configuration, module is in Standby-I until CE=1 */
   sendCommand(FLUSH_TX);                       /* Clear TX FIFO */
+  sendCommand(FLUSH_RX); 
 }
   
   				  
