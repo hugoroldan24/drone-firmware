@@ -37,7 +37,7 @@ The flight controller is the central brain of the drone, responsible for reading
 - **Sensor interfacing**  
   - **I2C** with interrupt-driven state machine for the MPU6050 IMU.  
   - **SPI** communication with the MS5611 barometric pressure sensor.  
-- **Telemetry system** → continuously computes relative altitude and battery voltage and sends them via UART.  
+- **Telemetry system** → continuously computes relative altitude and battery voltage and sends them via UART to the receiver MCU.  
 - **Efficient UART with DMA** → reception (double-buffered) for RF packets and transmission for telemetry, minimizing CPU load.  
 - **PID-based flight control** → stabilizes the drone in roll, pitch, and yaw axes and allows joystick-based control from the RF transmitter.  
 - **Motor mixing** → converts PID outputs and throttle inputs into individual motor commands.  
