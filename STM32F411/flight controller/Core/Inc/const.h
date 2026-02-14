@@ -124,11 +124,11 @@ typedef enum {
 /*                               PWM				                                        */
 /*==========================================================================================*/
 
-#define ESC_PWM_PERIOD 		   (5000U)			/* 5 ms period must be configured in the ESC firmware */
-#define IDLE_PULSE			   (1000U)			/* 1 ms wide pulse will make the motors be in idle state */
+#define ESC_PWM_PERIOD 		   (250U)			/* OneShot has not a fixed period, we set it to the maximum period length */
+#define IDLE_PULSE			   (125U)			/* 1 ms wide pulse will make the motors be in idle state */
 #define UPDATE_REG_PERIOD	   (4000U)			/* Every 4 ms we will update the CCR registes 			*/
-#define PWM_MIN                (1000U)          /* Minimum PWM pulse width */
-#define PWM_MAX                (2000U)          /* Maximum PWM pulse width */
+#define PWM_MIN                (125U)          /* Minimum PWM pulse width */
+#define PWM_MAX                (250U)          /* Maximum PWM pulse width */
 
 /*==========================================================================================*/
 /*                               FILTER				                                        */

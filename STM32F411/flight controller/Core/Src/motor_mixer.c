@@ -29,11 +29,11 @@ void motor_mixer(PID_Outputs_t pid_outputs, float throttle, PWM_Outputs_t* ccr)
 	float pwm3 = (throttle - pid_outputs.pitch - pid_outputs.roll - pid_outputs.yaw_rate);
 	float pwm4 = (throttle - pid_outputs.pitch + pid_outputs.roll + pid_outputs.yaw_rate);
 
-    /* Constrain each PWM value to safe operational range (1000–2000 µs) */
-	constrain(&pwm1,1000,2000);
-	constrain(&pwm2,1000,2000);
-	constrain(&pwm3,1000,2000);
-	constrain(&pwm4,1000,2000);
+    /* Constrain each PWM value to safe operational range (125–250 µs) */
+	constrain(&pwm1,125U,250U);
+	constrain(&pwm2,125U,250U);
+	constrain(&pwm3,125U,250U);
+	constrain(&pwm4,125U,250U);
 
     /* Cast to uint16_t and store in output structure for each motor */
 	ccr->motor1_pwm =	(uint16_t) pwm1;

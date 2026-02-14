@@ -71,7 +71,7 @@ float compute_PID(float error, float dt, PID_Controller_t* pid_params)
     /* Combine P, I, and D terms */
     float output = proportional + integral + derivative;
 
-    /* Constrain output to limits (e.g., 1000–2000 µs for ESC PWM) */
+    /* Constrain output to limits (e.g., 125–250 µs for ESC PWM OneShot125) */
     constrain(&output, pid_params->output_min, pid_params->output_max);
 
     return output;

@@ -460,6 +460,10 @@ static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr)
    timer->CCR2 = ccr.motor2_pwm;
    timer->CCR3 = ccr.motor3_pwm;
    timer->CCR4 = ccr.motor4_pwm;
+
+   /* Start timer to generate PWM signals (OneShot125) */
+   timer->CR1 |= TIM_CR1_CEN;
+
 }
 
 
