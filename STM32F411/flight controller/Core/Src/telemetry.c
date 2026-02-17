@@ -44,10 +44,11 @@ void send_telemetry(Telem_t data)
 	uart1_send_dma(telemetry_data,TELEM_FRAME_SIZE);
 }
 
+
 /**
  * @brief Processes raw battery and pressure readings into usable telemetry values.
  *
- * Converts the raw ADC battery value to voltage per cell and the raw pressure
+ * Converts the raw ADC battery value to voltage and the raw pressure
  * reading to relative altitude in meters. Updates the telemetry_data array with
  * the integer and fractional parts of both measurements. If battery voltage is below
  * a defined minimum, the failsafe task is resumed.
@@ -61,8 +62,8 @@ static void ProcessBatteryAndAltitude(uint16_t raw_battery, int32_t raw_preassur
 	static uint8_t first; /* Flag to check if initial pressure reference has been set */
 	static int32_t Pref;  /* Initial pressure reference used to calculate relative height */
 
-	/* Convert raw ADC battery reading into voltage per cell */
-	float battery_voltage = (((float)raw_battery / ADC_MAX_VALUE)*VREF*DIVIDER_FACTOR)/3; /* Divide by 3 to get the voltage per cell */
+	/* Convert raw ADC battery reading into voltage */
+	float battery_voltage = (((float)raw_battery * VREF) / ADC_MAX_VALUE) * DIVIDER_FACTOR;  /* Get the battery voltage */
 
 	/* Trigger safety task if battery voltage drops below the established minimum */
 	if(battery_voltage <= BATTERY_MIN_V)
@@ -80,9 +81,9 @@ static void ProcessBatteryAndAltitude(uint16_t raw_battery, int32_t raw_preassur
 
 	/* Store voltage and height as integer + first decimal in telemetry_data array */
 	telemetry_data[0]  =  (uint8_t)battery_voltage;
-	telemetry_data[1]  =  (uint8_t)((battery_voltage-telemetry_data[0])*10);
+	telemetry_data[1]  =  (uint8_t)((battery_voltage - telemetry_data[0]) * 10U);
 	telemetry_data[2]  =  (uint8_t)height;
-	telemetry_data[3]  =  (uint8_t)((height-telemetry_data[2])*10);
+	telemetry_data[3]  =  (uint8_t)((height - telemetry_data[2]) * 10U);
 }
 
 

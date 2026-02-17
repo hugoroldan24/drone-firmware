@@ -49,4 +49,6 @@ The ESCs are controlled using the OneShot125 protocol, generating pulses immedia
 
 In this project, OneShot125 is used instead of traditional servo-style PWM. The main reason is that OneShot drastically reduces latency between the PID calculation and motor signal update, generating each pulse immediately after the control loop rather than waiting for a fixed PWM period. This improves drone stability and precision, avoiding timing jitter or phase lag that can occur with continuous fixed-period PWM, especially at high-frequency control loops.
 
+
+
 ---

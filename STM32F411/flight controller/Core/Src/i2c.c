@@ -195,6 +195,7 @@ static void start_callback()
 	i2c_state = EV6;				   /* Move to next state (waiting for address event) */
 }
 
+
 /**
  * @brief  Address sent callback.
  *         Triggered when the ADDR flag is set (EV6), meaning the slave address has been

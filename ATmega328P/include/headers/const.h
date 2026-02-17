@@ -168,4 +168,7 @@ the respective flags, they are already set (e.g rx_flag, received_telem)*/
 #define TX_TELEMETRY_TASK_PERIOD_MS (50U)
 #define RX_TELEMETRY_TASK_PERIOD_MS (50U)
 
+#define BATTERY_SAFE_V (108U) /* When we receive this battery voltage, means that you need to land */
+                              /* Since we can't work with floats, the value is multiplied by 10.*/
+
 #endif

@@ -463,7 +463,6 @@ static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr)
 
    /* Start timer to generate PWM signals (OneShot125) */
    timer->CR1 |= TIM_CR1_CEN;
-
 }
 
 

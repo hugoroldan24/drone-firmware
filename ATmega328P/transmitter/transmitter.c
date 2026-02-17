@@ -39,4 +39,6 @@ void transmitter_config()
   RF_Transmitter_Init();  	  
   start_ADC_conversion();
   USART_Init(UBRR);
+  DDRD  |=  (1 << DDD4);   /* Set PD4 (low-battery indicator LED) as output */
+  PORTD &= ~(1 << PORTD4); /* Set low */
 }

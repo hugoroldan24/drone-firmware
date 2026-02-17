@@ -66,6 +66,8 @@ void send_data_task(void)
  * @brief  Scheduler task that processes received telemetry (ACK payload) and forwards it to Bluetooth.
  *         If the radio IRQ has indicated an RX event (received_telem set), the task reads
  *         TELEM_FRAME_SIZE bytes from the nRF24L01+ RX FIFO and prints them through the HC-06.
+ *         It also turn on a warning LED when a dangerous voltage level is reached, from this point it
+ *         is recommended to stop the flight.
  *
  *         This task does not block; it only checks the flag to remain scheduler-friendly.
  */
@@ -73,11 +75,20 @@ void telemetry_task(void)
 {
    static uint8_t telem_data[TELEM_FRAME_SIZE];
    static uint8_t status;
+   uint8_t battery_level;
 
    if(received_telem)  /* Flag set by INT0 ISR when IRQ asserted */
    {
       get_Telem_Data(telem_data,TELEM_FRAME_SIZE);  /* Read telemetry payload from RX FIFO */
-      hc06_send_telemetry(telem_data);              /* Send formatted telemetry via USART to HC-06 */
+      
+      battery_level = telem_data[0] * 10U + telem_data[1];
+
+      if(battery_level <= BATTERY_SAFE_V)
+      {
+         PORTD |= (1 << PORTD4);          /* Turn led on warning that low battery voltage was reached */
+      }
+
+      hc06_send_telemetry(telem_data);    /* Send formatted telemetry via USART to HC-06 */
 
       status = readRegister(R_STATUS);
       writeRegister(W_STATUS,status);

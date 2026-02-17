@@ -22,6 +22,7 @@ static volatile BaseType_t pxHigherPriorityTaskWoken;
 static volatile uint16_t   battery_adc; /* Variable where the latest conversion is stored      */
 extern TaskHandle_t SENSORS_ID;  /* Task handle of the task that will execute this code */
 
+
 /**
  * @brief  Initialize ADC1 for battery measurement on PA2 and enable EOC interrupt.
  *         Configures GPIOA PA2 as analog input, sets up ADC1 regular sequence to sample
@@ -101,7 +102,6 @@ uint16_t read_battery(void)
  */
 static void adc_callback(void)
 {
-
 	battery_adc = ADC1->DR;
 
 	pxHigherPriorityTaskWoken = pdFALSE;

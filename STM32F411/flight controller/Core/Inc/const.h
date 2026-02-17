@@ -199,13 +199,14 @@ typedef enum {
 
 #define BATTERY_PERIOD  (200000UL) /* Period in us where we will read the battery voltage */
 
-#define ADC_MAX_VALUE   (4096.0f)
+#define ADC_MAX_VALUE   (4095.0f)
 #define VREF            (3.3f)
-#define DIVIDER_FACTOR  (2.0f)   /* This is the voltage divider used to scale down the battery voltage so it can be read by the MCU */
+#define DIVIDER_FACTOR  (3.7f)   /* Voltage divider used to scale down the battery voltage so it can be read by the MCU */
+                                 /* (27kOhm + 10kOhm) / 10 k0hm = 3.7 */
 
-#define BATTERY_MAX_V  (4.2f)
-#define BATTERY_SAFE_V (3.6f) /* When we read this voltage, it means it's time to land */
-#define BATTERY_MIN_V  (3.3f) /* When this volatge is reached, the dron will enter in security mode */
+#define BATTERY_MAX_V  (12.6f)
+#define BATTERY_SAFE_V (10.8f) /* When we read this voltage, it means it's time to land */
+#define BATTERY_MIN_V  (9.9f) /* When this volatge is reached, the dron will enter in security mode */
 
 /*==========================================================================================*/
 /*                              FreeRTOS PARAMETERS				                            */
