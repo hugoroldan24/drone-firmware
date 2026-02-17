@@ -52,9 +52,12 @@ The telemetry data is sent back to the transmitter using the nRF24L01 ACK payloa
 **7. Telemetry is forwarded to the user interface.**
 The transmitter receives the telemetry data and relays it through a Bluetooth module to a mobile device, where it is displayed to the user in real time.
 
-### 📡 Transmitter & Receiver (ATmega38p)
+### 📡 Transmitter & Receiver (ATmega328p)
 
 The transmitter and receiver are built around the ATmega328 microcontroller and communicate wirelessly using the nRF24L01 RF transceiver operating in the 2.4 GHz ISM band. Both modules execute a lightweight cooperative scheduler to manage input acquisition, RF communication, and data handling tasks deterministically. Together, they form the remote control subsystem responsible for capturing user inputs, transmitting flight commands to the flight controller (FC), and returning telemetry data to the user.
+
+#### Key Features
+
 
 The following diagram illustrates the operational architecture of the transmitter–receiver subsystem.
 
