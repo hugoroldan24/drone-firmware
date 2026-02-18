@@ -56,10 +56,26 @@ The transmitter receives the telemetry data and relays it through a Bluetooth mo
 
 The transmitter and receiver are built around the ATmega328 microcontroller and communicate wirelessly using the nRF24L01 RF transceiver operating in the 2.4 GHz ISM band. Both modules execute a lightweight cooperative scheduler to manage input acquisition, RF communication, and data handling tasks deterministically. Together, they form the remote control subsystem responsible for capturing user inputs, transmitting flight commands to the flight controller (FC), and returning telemetry data to the user.
 
-#### Key Features
+#### Transmitter - Key Features
+
+- **Cooperative task scheduler** → Lightweight non-preemptive scheduler managing two main tasks:
+  - **send_data_task** → Handles joystick data buffering and RF packet transmission.
+  - **telemetry_task** → Manages telemetry reception, processing, and user feedback.
+
+- **Timer-triggered ADC sampling** → Two dual-axis joysticks are periodically sampled using hardware auto-triggered ADC conversions. The ADC conversion complete ISR stores the sampled values into a circular buffer, ensuring deterministic acquisition without blocking the execution flow.
+
+- **Circular buffer decoupling** → Joystick samples are pushed into a ring buffer inside the ADC ISR, allowing asynchronous packet construction while preserving real-time sampling guarantees.
+
+- **Asynchronous RF transmission (SPI-based)** → The `send_data_task` retrieves the required bytes from the circular buffer, constructs a structured control packet, and transmits it to the nRF24L01 via SPI for wireless communication with the receiver.
+
+- **Bidirectional RF communication with ACK payload** → The nRF24L01 triggers an interrupt when an ACK containing telemetry payload is received. An ISR sets a synchronization flag that enables the `telemetry_task` to read the telemetry data from the RF module through SPI.
+
+- **Battery monitoring and user feedback** → Telemetry packets include battery voltage information. The system compares this value against a predefined threshold and activates a warning LED when a low-battery condition is detected.
+
+- **Bluetooth telemetry forwarding (UART interface)** → Telemetry data is transmitted via UART to the HC-06 Bluetooth module, enabling real-time visualization on a mobile device.
 
 
-The following diagram illustrates the operational architecture of the transmitter–receiver subsystem.
+The following diagram illustrates the operational architecture of the transmitter subsystem.
 
 
 
