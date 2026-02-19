@@ -275,7 +275,7 @@ uint8_t uart1_read_dma(uint8_t* buf, uint16_t len)
 	sum &= 0xFF;
 
     /* Compare checksum */
-	return (expected_cs == sum) ? 1 : 0;
+	return (expected_cs == sum) ? STATUS_OK : STATUS_NOT_OK;
 }
 
 /**

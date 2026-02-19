@@ -11,6 +11,28 @@
 
 #include <stdint.h>
 
+
+typedef uint8_t Status_t
+
+#define STATUS_OK     1U
+#define STATUS_NOT_OK 0U
+
+typedef uint8_t DroneState_t;
+typedef uint8_t SystemEvent_t;
+
+#define STATE_BOOT         0U
+#define STATE_STANDBY      1U
+#define STATE_FLIGHT       2U
+#define STATE_LANDING      3U
+
+#define EVENT_POWERED_ON      0U 
+#define EVENT_IMU_INITIALIZED 1U
+#define EVENT_BAR_INITIALIZED 2U
+#define EVENT_RX_VERIFIED     3U
+#define EVENT_IMU_VERIFIED    4U
+#define EVENT_TAKEOFF         5U
+
+
 /*==========================================================================================*/
 /*                                  SYSTEM CLOCK                                            */
 /*==========================================================================================*/
@@ -100,6 +122,8 @@ typedef enum {
 #define GYR_SCALE_FACTOR		(131.0f)	/* +-250 º/s */
 #define FIFO_POLL_US            (200U)      /* Microseconds to wait before checking that the FIFO has the expected number of bytes */
 
+#define ACC_TOLERANCE           (0.05f)
+#define GYRO_TOLERANCE          (0.1f)
 /*==========================================================================================*/
 /*                             MS5611 BAROMETER CONSTANTS                                   */
 /*==========================================================================================*/
@@ -211,10 +235,12 @@ typedef enum {
 /*==========================================================================================*/
 /*                              FreeRTOS PARAMETERS				                            */
 /*==========================================================================================*/
-#define STACK_SIZE_WORDS           (256U)  /* 256 words * 4 bytes = 1024 bytes = 1 KB Stack for each task */
-#define TELEM_QUEUE_NUM_ELEM       (6U)
-#define FLIGHT_DATA_QUEUE_NUM_ELEM (6U)
-#define PID_ERROR_QUEUE_NUM_ELEM   (10U)
+#define STACK_SIZE_WORDS            (256U)  /* 256 words * 4 bytes = 1024 bytes = 1 KB Stack for each task */
+#define TELEM_QUEUE_NUM_ELEM        (6U)
+#define FLIGHT_DATA_QUEUE_NUM_ELEM  (6U)
+#define PID_ERROR_QUEUE_NUM_ELEM    (10U)
+#define SYSTEM_EVENT_QUEUE_NUM_ELEM (1U)
+
 
 #endif /* CONST_H_ */
 

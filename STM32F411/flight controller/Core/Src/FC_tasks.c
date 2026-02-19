@@ -29,6 +29,10 @@
 #include "battery_lecture.h"
 #include "telemetry.h"
 #include "util.h"
+#include <math.h>
+
+static drone_state_t system_state = STATE_BOOT;
+
 
        void xHandleRCRxTask	     (void* parameters);
 static void xHandleIMUTask	     (void* parameters);
@@ -40,15 +44,13 @@ static void xHandlePIDErrorTask	 (void* parameters);
 
 static void set_pid_params(PID_Controller_t *roll, PID_Controller_t *pitch, PID_Controller_t *yaw);
 static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr);
+static Status_t checkIMU(float imu_data[6]);
 
 
-TaskHandle_t      RC_RX_ID, IMU_ID, CTRL_ID, SENSORS_ID, TELEM_ID, SAFETY_ID, PID_ERROR_ID;
+TaskHandle_t      RC_RX_ID, IMU_ID, CTRL_ID, SENSORS_ID, TELEM_ID, SAFETY_ID, PID_ERROR_ID,SYSTEM_STATE_ID;
 PWM_Outputs_t     ccr;
-QueueHandle_t 	  telem_queue_ID;
-QueueHandle_t 	  flight_data_queue_ID;
-QueueHandle_t 	  pid_error_queue_ID;
-SemaphoreHandle_t MPU_Semaphore;
-SemaphoreHandle_t IMU_RX_SYN_Semaphore;
+QueueHandle_t 	  telem_queue_ID, flight_data_queue_ID, pid_error_queue_ID, system_event_queue_ID;
+SemaphoreHandle_t MPU_Semaphore, IMU_RX_SYN_Semaphore;
 UserControl_t 	  joystick_data;
 static uint8_t    FAILSAFE_ACTIVATED;
 
@@ -56,12 +58,14 @@ static uint8_t    FAILSAFE_ACTIVATED;
 /* Buffer that the task being created will use as its stack. Note this is
        an array of StackType_t variables. The size of StackType_t is dependent on
        the RTOS port. */
-StackType_t   IMU_Task_Stack        [STACK_SIZE_WORDS];
-StackType_t   CTRL_Task_Stack       [STACK_SIZE_WORDS];
-StackType_t   SENSORS_Task_Stack    [STACK_SIZE_WORDS];
-StackType_t   TELEM_Task_Stack      [STACK_SIZE_WORDS];
-StackType_t   SAFETY_Task_Stack     [STACK_SIZE_WORDS];
-StackType_t   PID_ERRORS_Task_Stack [STACK_SIZE_WORDS];
+StackType_t   IMU_Task_Stack          [STACK_SIZE_WORDS];
+StackType_t   CTRL_Task_Stack         [STACK_SIZE_WORDS];
+StackType_t   SENSORS_Task_Stack      [STACK_SIZE_WORDS];
+StackType_t   TELEM_Task_Stack        [STACK_SIZE_WORDS];
+StackType_t   SAFETY_Task_Stack       [STACK_SIZE_WORDS];
+StackType_t   PID_ERRORS_Task_Stack   [STACK_SIZE_WORDS];
+StackType_t   SYSTEM_STATE_Task_Stack [STACK_SIZE_WORDS];
+
 
 /* Declare static buffers thath will be used to hold the task's data structures (TCB), has to be persistent*/
 StaticTask_t IMU_TCB;
@@ -70,16 +74,19 @@ StaticTask_t SENSORS_TCB;
 StaticTask_t TELEM_TCB;
 StaticTask_t SAFETY_TCB;
 StaticTask_t PID_ERRORS_TCB;
+StaticTask_t SYSTEM_STATE_TCB;
 
 /*Arrays that are at least large enough to hold the maximum number of items that can be in the queues at any one time*/ 
-uint8_t telem_queue       [TELEM_QUEUE_NUM_ELEM       * sizeof(Telemetry_t)];
-uint8_t flight_data_queue [FLIGHT_DATA_QUEUE_NUM_ELEM * sizeof(FlightMessage_t)];
-uint8_t pid_error_queue   [PID_ERROR_QUEUE_NUM_ELEM   * sizeof(FlightMessage_t)];
+uint8_t telem_queue        [TELEM_QUEUE_NUM_ELEM        * sizeof(Telemetry_t)];
+uint8_t flight_data_queue  [FLIGHT_DATA_QUEUE_NUM_ELEM  * sizeof(FlightMessage_t)];
+uint8_t pid_error_queue    [PID_ERROR_QUEUE_NUM_ELEM    * sizeof(FlightMessage_t)];
+uint8_t system_event_queue [SYSTEM_EVENT_QUEUE_NUM_ELEM * sizeof(SystemEvent_t)];
 
 /* Used to hold the queue's data structure statically.*/
 StaticQueue_t telem_queue_struct;
 StaticQueue_t flight_data_queue_struct;
 StaticQueue_t pid_error_queue_struct;
+StaticQueue_t system_event_queue_struct;
 
 /* Will be used to hold the semaphore's state.*/
 StaticSemaphore_t MPU_Semaphore_State;
@@ -123,20 +130,81 @@ void createTasks()
 	PID_ERROR_ID = xTaskCreateStatic(xHandlePIDErrorTask,"ERROR",
 		   STACK_SIZE_WORDS,NULL,3,PID_ERRORS_Task_Stack,&PID_ERRORS_TCB);
 
+	/* Create system state task (higher priority) */
+	SYSTEM_STATE_ID = xTaskCreateStatic(xHandleSystemStateTask,"STATE",
+	       STACK_SIZE_WORDS,NULL,6,SYSTEM_STATE_Task_Stack,&SYSTEM_STATE_TCB);
+
     /* Create queues for inter-task communication */
-	telem_queue_ID       = xQueueCreateStatic(TELEM_QUEUE_NUM_ELEM,sizeof(Telemetry_t),
+	telem_queue_ID        = xQueueCreateStatic(TELEM_QUEUE_NUM_ELEM,sizeof(Telemetry_t),
 	                       telem_queue,&telem_queue_struct); 
 
-	flight_data_queue_ID = xQueueCreateStatic(FLIGHT_DATA_QUEUE_NUM_ELEM,sizeof(FlightMessage_t),
+	flight_data_queue_ID  = xQueueCreateStatic(FLIGHT_DATA_QUEUE_NUM_ELEM,sizeof(FlightMessage_t),
                            flight_data_queue,&flight_data_queue_struct);
 
-	pid_error_queue_ID   = xQueueCreateStatic(PID_ERROR_QUEUE_NUM_ELEM,sizeof(FlightMessage_t),
+	pid_error_queue_ID    = xQueueCreateStatic(PID_ERROR_QUEUE_NUM_ELEM,sizeof(FlightMessage_t),
                            pid_error_queue,&pid_error_queue_struct);
+	
+	system_event_queue_ID = xQueueCreateStatic(SYSTEM_EVENT_QUEUE_NUM_ELEM,sizeof(SystemEvent_t),
+                           system_event_queue,&system_event_queue_struct);
 
     /* Semaphore for IMU access */
 	MPU_Semaphore        = xSemaphoreCreateBinaryStatic(&MPU_Semaphore_State);
 
 	IMU_RX_SYN_Semaphore = xSemaphoreCreateBinaryStatic(&IMU_RX_Sync_Semaphore_State);
+}
+
+
+static void xHandleSystemStateTask(void* parameters)
+{
+   SystemEvent_t new_event;
+   SystemEvent_t curr_event = EVENT_POWERED_ON;
+   while(1)
+   {
+	  
+	  xQueueReceive(system_event_queue, &new_event,portMAX_DELAY); 
+	  curr_event = new_event;
+	  
+	  if(curr_event != new_event)
+	  {
+		 curr_event = new_event;
+
+         switch(system_state)
+         {
+         case STATE_BOOT:			   
+	        if(curr_event == EVENT_BAR_INITIALIZED)
+			{
+			   vTaskResume(IMU_ID);
+			   vTaskSuspend(SENSORS_ID);  
+			}
+			else if(curr_event == EVENT_IMU_INITIALIZED)
+			{
+               system_state = STATE_STANDBY;
+			   vTaskSuspend(IMU_ID);
+			   vTaskResume(RC_RX_ID);
+			}
+         break;
+	     case STATE_STANDBY:
+		    if(curr_event == EVENT_RX_VERIFIED)
+			{
+			   /* Suspend */
+	           vTaskSuspend(RC_RX_ID);	
+			   vTaskResume(IMU_ID);
+			}
+			if(curr_event == EVENT_IMU_VERIFIED)
+			{
+				vTaskSuspend(IMU_ID);
+                vTaskResume(SENSORS_ID);
+			}
+
+		    
+	     break;
+	     case STATE_FLIGHT:
+	     break;
+	     case STATE_LANDING:
+	     break;
+         }
+      }
+   }
 }
 
 /**
@@ -147,10 +215,40 @@ void createTasks()
  */
 void xHandleRCRxTask(void* parameters)
 {
+   FlightMessage_t setpoint;
+   SystemEvent_t event;
+   Status_t status = STATUS_OK;
+
+   while(1)
+   {
+      switch(system_state)
+      {
+	     case STATE_BOOT:
+			/* Suspend self until activated */
+	        vTaskSuspend(NULL);
+		 break;
+
+		 case STATE_STANDBY:
+		    /* Read joystick axes just to verify proper connection */
+			status = get_joystick_data(&joystick_data);
+            if(status == STATUS_OK)
+			{
+               event = EVENT_RX_VERIFIED;
+	           xQueueSend(system_event_queue,(void *)&event,portMAX_DELAY);
+			}
+		 break;
+
+		 case STATE_FLIGHT:
+		 break;
+
+		 case STATE_LANDING:
+		 break;
+      }
+   }
 	/* Suspend self until activated */
 	vTaskSuspend(NULL);
 
-	FlightMessage_t setpoint;
+	
 
 	if(!FAILSAFE_ACTIVATED){
 		while(1)
@@ -193,26 +291,58 @@ void xHandleRCRxTask(void* parameters)
  */
 static void xHandleIMUTask(void* parameters)
 {
-    /* Suspend self until activated */
-	vTaskSuspend(NULL);
-
-	float imu_data[6];
+    float imu_data[6];
+	uint32_t lastcall;
+	Status_t status = STATUS_OK;
 	FlightMessage_t imu_attitude;
+	SystemEvent_t event;
+	
 
     /* Throttle not used for IMU data */
 	imu_attitude.throttle = 0;
 
-    /* Initialize MPU sensor */
-	/* Since this function need the scheduler on but we don't want that any task interrupts it
-	we will suspend all the other tasks so no one preempts us*/
-	init_mpu6050();
+	while(1)
+	{
+		switch(system_state)
+		{
+			case STATE_BOOT:
+			    /* Suspend self until activated */
+	           vTaskSuspend(NULL);
+
+			   /* Initialize MPU sensor */
+	           init_mpu6050();
+               event = EVENT_IMU_INITIALIZED;
+	           xQueueSend(system_event_queue,(void *)&event,portMAX_DELAY);
+			break;
+
+			case STATE_STANDBY:
+			   /* Read accelerometer and gyroscope */
+	           status = mpu_read_acc_gyr(imu_data); 
+			   status = checkIMU(imu_data);
+
+			   if(status == STATUS_OK)
+			   {
+			      event = EVENT_IMU_VERIFIED;
+	              xQueueSend(system_event_queue,(void *)&event,portMAX_DELAY);
+			   }
+
+			break;
+
+			case STATE_FLIGHT:
+			break;
+
+			case STATE_LANDING:
+			break;
+		}
+	}
+
 
 	/* Wake up the higher priority task now that we have initialized all the peripherals
 	that required the scheduler to be set.*/
 	vTaskResume(CTRL_ID); 
 	taskYIELD();
 
-	uint32_t lastcall = get_time_now_us();
+	lastcall = get_time_now_us();
 
 	while(1)
 	{
@@ -241,6 +371,26 @@ static void xHandleIMUTask(void* parameters)
  */
 static void xHandlePIDErrorTask(void* parameters)
 {
+	while(1)
+	{
+		switch(system_state)
+		{
+			case STATE_BOOT:
+			    /* Suspend self until activated */
+	           vTaskSuspend(NULL);
+			break;
+
+			case STATE_STANDBY:
+			/* The task should not been resumed in this state */
+			break;
+
+			case STATE_FLIGHT:
+			break;
+
+			case STATE_LANDING:
+			break;
+		}
+	}
 	/* Suspend self until activated */
 	vTaskSuspend(NULL);
 
@@ -273,6 +423,26 @@ static void xHandlePIDErrorTask(void* parameters)
  */
 static void xHandleControlTask(void* parameters)
 {
+	while(1)
+	{
+		switch(system_state)
+		{
+			case STATE_BOOT:
+	 		   /* Suspend self until activated */
+	           vTaskSuspend(NULL);
+			break;
+
+			case STATE_STANDBY: 
+			/* The task should not been resumed in this state */
+			break;
+
+			case STATE_FLIGHT:
+			break;
+
+			case STATE_LANDING:
+			break;
+		}
+	}
 	/* Suspend self until activated */
 	vTaskSuspend(NULL);
 
@@ -329,17 +499,33 @@ static void xHandleSensorsTask(void* parameters)
 {
 	Telemetry_t data;
 	TickType_t xLastWakeTime;
-    
-	/* Since this function need the scheduler on but we don't want that any task interrupts it
-	we will suspend all the other tasks so no one preempts us*/
-	init_ms5611();
+    SystemEvent_t event;
 
-	/* Wake up IMU task so it can initialice his sensor 
-	since it has higher priority, we will be preempted */
-	vTaskResume(IMU_ID); 
-	taskYIELD();
+	const TickType_t xFrequency = pdMS_TO_TICKS(200U);
+ 
+	while(1)
+	{
+		switch(system_state)
+		{
+			case STATE_BOOT:
+			   init_ms5611();
+	           event = EVENT_BAR_INITIALIZED;
+	           xQueueSend(system_event_queue,(void *)&event,portMAX_DELAY);
+			break;
 
-    const TickType_t xFrequency = pdMS_TO_TICKS(200U);
+			case STATE_STANDBY:
+			   
+			break;
+
+			case STATE_FLIGHT:
+			break;
+
+			case STATE_LANDING:
+			break;
+		}
+	}
+	
+
     xLastWakeTime = xTaskGetTickCount();
 
 	while(1)
@@ -358,15 +544,36 @@ static void xHandleSensorsTask(void* parameters)
  */
 static void xHandleTelemetryTask(void* parameters)
 {
+	Telem_t rx_data;
+	while(1)
+	{
+		switch(system_state)
+		{
+			case STATE_BOOT:
+			   /* Suspend self until activated */
+	           vTaskSuspend(NULL); 
+			break;
+
+			case STATE_STANDBY:
+			break;
+
+			case STATE_FLIGHT:
+			break;
+
+			case STATE_LANDING:
+			break;
+		}
+	}
     /* This task is not suspended because it has the lowest priority so does not matter
 	if we suspend it*/
-	Telem_t rx_data;
+	
 	while(1)
 	{
 		xQueueReceive(telem_queue, &rx_data,portMAX_DELAY); 
 		send_telemetry(rx_data);
 	}
 }
+
 
 /**
  * @brief Safety/failsafe task.
@@ -376,6 +583,26 @@ static void xHandleTelemetryTask(void* parameters)
  */
 static void xHandleSafetyTask(void* parameters)
 {
+	while(1)
+	{
+		switch(system_state)
+		{
+			case STATE_BOOT:
+		       /* Suspend self until activated */
+	           vTaskSuspend(NULL);
+			break;
+
+			case STATE_STANDBY:
+			/* The task should not been resumed in this state */
+			break;
+
+			case STATE_FLIGHT:
+			break;
+
+			case STATE_LANDING:
+			break;
+		}
+	}
     /* Suspend self until activated */
 	vTaskSuspend(NULL);
 
@@ -396,6 +623,8 @@ static void xHandleSafetyTask(void* parameters)
     /* Execute autonomous landing procedure */
 	failsafe_execute_landing();
 }
+
+
 
 /**
  * @brief Idle task hook called by FreeRTOS when no other task is running.
@@ -463,6 +692,19 @@ static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr)
 
    /* Start timer to generate PWM signals (OneShot125) */
    timer->CR1 |= TIM_CR1_CEN;
+}
+
+static Status_t checkIMU(float imu_data[6U])
+{
+   uint8_t i;
+   for(i = 0U; i < 3U ;i++)
+   {
+       if(fabs(imu_data[i]) > ACC_TOLERANCE || fabs(imu_data[i+3]) > GYRO_TOLERANCE)
+	   {
+	      return STATUS_NOT_OK; //QUiere decir que dron no está quieto
+	   }	   
+   }
+   return STATUS_OK;
 }
 
 

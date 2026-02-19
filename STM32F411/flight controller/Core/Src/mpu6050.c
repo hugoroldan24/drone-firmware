@@ -110,9 +110,9 @@ void mpu_write (uint8_t reg_addr, uint8_t* value)
  * @brief Reads accelerometer and gyroscope data from MPU6050 FIFO.
  *        Applies scale factors to convert raw data to physical units.
  * @param buf Float array of size 6 to store acc_x, acc_y, acc_z, gyr_x, gyr_y, gyr_z
- * @return 1 if successful, -1 if FIFO overflow occurred
+ * @return 1 if successful, 0 if FIFO overflow occurred
  */
-int mpu_read_acc_gyr (float buf[6])
+Status_t mpu_read_acc_gyr (float buf[6])
 {
 	uint8_t raw_buf[NUM_BYTES];
 	uint8_t count_buf[2];
@@ -136,7 +136,7 @@ int mpu_read_acc_gyr (float buf[6])
 		vTaskDelay(pdMS_TO_TICKS(1));
 		mpu_write(USER_CTRL_R,(uint8_t[]){0x40});
 
-		return -1; /* Overflow occurred  */
+		return STATUS_NOT_OK; /* Overflow occurred  */
 	}
 
     /* Wait until FIFO contains at least NUM_BYTES */
@@ -165,7 +165,7 @@ int mpu_read_acc_gyr (float buf[6])
         /* Apply scaling to get physical units */
 		buf[j] = (float)val/(scale_factor);
 	}
-	return 1;
+	return STATUS_OK;
 }
 
 

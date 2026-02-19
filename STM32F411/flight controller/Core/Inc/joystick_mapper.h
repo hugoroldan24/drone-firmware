@@ -4,7 +4,7 @@
 
 #include "dron_structs.h"
 
-void get_joystick_data(UserControl_t* input);
+uint8_t get_joystick_data(UserControl_t* input);
 void map_joystick_to_setpoint(UserControl_t input, FlightMessage_t* setpoint);
 
 

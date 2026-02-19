@@ -15,12 +15,12 @@
  * @brief Reads joystick data from UART into the UserControl structure.
  * @param input Pointer to UserControl_t structure to store joystick axis values
  */
-void get_joystick_data(UserControl_t* input)
+uint8_t get_joystick_data(UserControl_t* input)
 {
 	/* Read joystick bytes from UART via DMA into the axis array.
 	       FRAME_LEN-1 excludes protocol-specific start byte and checksum.
 	       Order of bytes is important to match channel mapping. */
-	uart1_read_dma(input->axis,FRAME_LEN-1);
+	return uart1_read_dma(input->axis,FRAME_LEN-1);
 }
 
 
