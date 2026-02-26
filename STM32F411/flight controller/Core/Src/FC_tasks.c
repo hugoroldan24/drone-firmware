@@ -44,7 +44,9 @@ static void xHandlePIDErrorTask	 (void* parameters);
 
 static void set_pid_params(PID_Controller_t *roll, PID_Controller_t *pitch, PID_Controller_t *yaw);
 static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr);
+
 static Status_t checkIMU(float imu_data[6]);
+static Status_t checkBattery(uint16_t raw_battery);
 
 
 TaskHandle_t      RC_RX_ID, IMU_ID, CTRL_ID, SENSORS_ID, TELEM_ID, SAFETY_ID, PID_ERROR_ID,SYSTEM_STATE_ID;
@@ -170,38 +172,50 @@ static void xHandleSystemStateTask(void* parameters)
 
          switch(system_state)
          {
-         case STATE_BOOT:			   
-	        if(curr_event == EVENT_BAR_INITIALIZED)
-			{
-			   vTaskResume(IMU_ID);
-			   vTaskSuspend(SENSORS_ID);  
-			}
-			else if(curr_event == EVENT_IMU_INITIALIZED)
-			{
-               system_state = STATE_STANDBY;
-			   vTaskSuspend(IMU_ID);
-			   vTaskResume(RC_RX_ID);
-			}
-         break;
-	     case STATE_STANDBY:
-		    if(curr_event == EVENT_RX_VERIFIED)
-			{
-			   /* Suspend */
-	           vTaskSuspend(RC_RX_ID);	
-			   vTaskResume(IMU_ID);
-			}
-			if(curr_event == EVENT_IMU_VERIFIED)
-			{
-				vTaskSuspend(IMU_ID);
-                vTaskResume(SENSORS_ID);
-			}
-
-		    
-	     break;
-	     case STATE_FLIGHT:
-	     break;
-	     case STATE_LANDING:
-	     break;
+            case STATE_BOOT:			   
+	           if(curr_event == EVENT_BAR_INITIALIZED)
+			   {
+			      vTaskResume(IMU_ID);
+			      vTaskSuspend(SENSORS_ID);  
+			   }
+			   else if(curr_event == EVENT_IMU_INITIALIZED)
+			   {
+                  system_state = STATE_STANDBY;
+			      vTaskSuspend(IMU_ID);
+			      vTaskResume(RC_RX_ID);
+			   }
+            break;
+	        case STATE_STANDBY:
+		       if(curr_event == EVENT_RX_VERIFIED)
+			   {
+			      /* Suspend */
+	              vTaskSuspend(RC_RX_ID);	
+			      vTaskResume(IMU_ID);
+			   }
+			   if(curr_event == EVENT_IMU_VERIFIED)
+			   {
+			      vTaskSuspend(IMU_ID);
+                  vTaskResume(SENSORS_ID);
+			   }
+			   if(curr_event == EVENT_BATTERY_VERIFIED)
+			   {
+                  vTaskSuspend(SENSORS_ID);			   
+			   }
+			   if(curr_event == EVENT_TAKEOFF)
+			   {
+			      system_state = STATE_FLIGHT;
+				  vTaskResume(IMU_ID);
+				  vTaskResume(RC_RX_ID);
+				  vTaskResume(SENSORS_ID);
+				  vTaskResume(CTRL_ID);
+				  vTaskResume(TELEM_ID);
+				  vTaskResume(PID_ERROR_ID);
+			   }
+	        break;
+	        case STATE_FLIGHT:
+	        break;
+	        case STATE_LANDING:
+	        break;
          }
       }
    }
@@ -497,9 +511,10 @@ static void xHandleControlTask(void* parameters)
  */
 static void xHandleSensorsTask(void* parameters)
 {
-	Telemetry_t data;
+	Raw_Data_t raw_data;
 	TickType_t xLastWakeTime;
     SystemEvent_t event;
+	Status_t status;
 
 	const TickType_t xFrequency = pdMS_TO_TICKS(200U);
  
@@ -514,6 +529,16 @@ static void xHandleSensorsTask(void* parameters)
 			break;
 
 			case STATE_STANDBY:
+			    
+               raw_data.battery_level = read_battery();
+               
+			   status = checkBattery(data.battery_level);
+
+			   if(status == STATUS_OK)
+			   {				  
+				  event = EVENT_BATTERY_VERIFIED;
+			      xQueueSend(system_event_queue,(void *)&event,portMAX_DELAY);
+			   }
 			   
 			break;
 
@@ -530,9 +555,10 @@ static void xHandleSensorsTask(void* parameters)
 
 	while(1)
 	{
-		data.preassure     = read_preassure();
-		data.battery_level = read_battery();
-		xQueueSend(telem_queue, (void *)&data,portMAX_DELAY); 
+		raw_data.preassure     = read_preassure();
+		raw_data.battery_level = read_battery();
+
+		xQueueSend(telem_queue, (void *)&raw_data,portMAX_DELAY); 
 		vTaskDelayUntil(&xLastWakeTime,xFrequency); 
 	}
 }
@@ -544,7 +570,10 @@ static void xHandleSensorsTask(void* parameters)
  */
 static void xHandleTelemetryTask(void* parameters)
 {
-	Telem_t rx_data;
+	Raw_Data_t rx_data;
+
+	Telem_t telem_data;
+
 	while(1)
 	{
 		switch(system_state)
@@ -569,8 +598,12 @@ static void xHandleTelemetryTask(void* parameters)
 	
 	while(1)
 	{
-		xQueueReceive(telem_queue, &rx_data,portMAX_DELAY); 
-		send_telemetry(rx_data);
+	   xQueueReceive(telem_queue, &rx_data,portMAX_DELAY); 
+
+		/* Convert raw battery and pressure values to meaningful voltage and altitude */
+	   ProcessBatteryAndAltitude(rx_data,&telem_data);
+
+	   send_telemetry(&telem_data);
 	}
 }
 
@@ -694,17 +727,43 @@ static void update_PWM_Outputs(TIM_TypeDef* timer, PWM_Outputs_t ccr)
    timer->CR1 |= TIM_CR1_CEN;
 }
 
+/* imu_data[0] -> acc x */
+/* imu_data[1] -> acc y */
+/* imu_data[2] -> acc z */
+
+/* imu_data[3] -> gyr x */
+/* imu_data[4] -> gyr y */
+/* imu_data[5] -> gyr z */
 static Status_t checkIMU(float imu_data[6U])
 {
    uint8_t i;
-   for(i = 0U; i < 3U ;i++)
+   uint8_t offset;
+   uint8_t tolerance;
+
+   for(i = 0U; i < 6U ;i++)
    {
-       if(fabs(imu_data[i]) > ACC_TOLERANCE || fabs(imu_data[i+3]) > GYRO_TOLERANCE)
-	   {
-	      return STATUS_NOT_OK; //QUiere decir que dron no está quieto
-	   }	   
-   }
+      tolerance = (i < 3U) ? ACC_TOLERANCE : GYRO_TOLERANCE;
+	  offset = (i == 2U) ? GRAVITY : 0U; /* acc z will be aprox 9.81 if at rest*/
+
+	  if(fabs(imu_data[i] - offset) > tolerance)
+	  {
+	     return STATUS_NOT_OK
+	  }
+   }	    
    return STATUS_OK;
+}
+
+static Status_t checkBattery(uint16_t raw_battery)
+{   
+   float battery_voltage;
+
+   battery_voltage = (((float)raw_battery * VREF) / ADC_MAX_VALUE) * DIVIDER_FACTOR;
+
+   if(battery_voltage >= BATTERY_NOMINAL_V)
+   {
+      return STATUS_OK;
+   }
+   return STATUS_NOT_OK;
 }
 
 

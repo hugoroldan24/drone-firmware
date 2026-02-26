@@ -25,12 +25,13 @@ typedef uint8_t SystemEvent_t;
 #define STATE_FLIGHT       2U
 #define STATE_LANDING      3U
 
-#define EVENT_POWERED_ON      0U 
-#define EVENT_IMU_INITIALIZED 1U
-#define EVENT_BAR_INITIALIZED 2U
-#define EVENT_RX_VERIFIED     3U
-#define EVENT_IMU_VERIFIED    4U
-#define EVENT_TAKEOFF         5U
+#define EVENT_POWERED_ON       (0U) 
+#define EVENT_IMU_INITIALIZED  (1U)
+#define EVENT_BAR_INITIALIZED  (2U)
+#define EVENT_RX_VERIFIED      (3U)
+#define EVENT_IMU_VERIFIED     (4U)
+#define EVENT_BATTERY_VERIFIED (5U)
+#define EVENT_TAKEOFF          (6U)
 
 
 /*==========================================================================================*/
@@ -124,6 +125,10 @@ typedef enum {
 
 #define ACC_TOLERANCE           (0.05f)
 #define GYRO_TOLERANCE          (0.1f)
+#define GRAVITY                 (9.81f)
+
+#define NUM_BYTES_IMU           (12U)       /* Number of bytes to read from FIFO   */
+
 /*==========================================================================================*/
 /*                             MS5611 BAROMETER CONSTANTS                                   */
 /*==========================================================================================*/
@@ -142,7 +147,6 @@ typedef enum {
 #define CMD_CONVERT_D2_OSR_4096 (0x58U)      /* Temperature conversion command      */
 #define ADC_READ                (0x00U)      /* ADC read command                    */
 
-#define NUM_BYTES               (12U)       /* Number of bytes to read from FIFO   */
 
 /*==========================================================================================*/
 /*                               PWM				                                        */
@@ -228,9 +232,10 @@ typedef enum {
 #define DIVIDER_FACTOR  (3.7f)   /* Voltage divider used to scale down the battery voltage so it can be read by the MCU */
                                  /* (27kOhm + 10kOhm) / 10 k0hm = 3.7 */
 
-#define BATTERY_MAX_V  (12.6f)
-#define BATTERY_SAFE_V (10.8f) /* When we read this voltage, it means it's time to land */
-#define BATTERY_MIN_V  (9.9f) /* When this volatge is reached, the dron will enter in security mode */
+#define BATTERY_MAX_V     (12.6f)
+#define BATTERY_NOMINAL_V (11.f)
+#define BATTERY_SAFE_V    (10.8f) /* When we read this voltage, it means it's time to land */
+#define BATTERY_MIN_V     (9.9f) /* When this volatge is reached, the dron will enter in security mode */
 
 /*==========================================================================================*/
 /*                              FreeRTOS PARAMETERS				                            */

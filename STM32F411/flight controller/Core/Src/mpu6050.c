@@ -114,7 +114,7 @@ void mpu_write (uint8_t reg_addr, uint8_t* value)
  */
 Status_t mpu_read_acc_gyr (float buf[6])
 {
-	uint8_t raw_buf[NUM_BYTES];
+	uint8_t raw_buf[NUM_BYTES_IMU];
 	uint8_t count_buf[2];
 
 	/* Wait until valid data is available (does not mean it is already in the FIFO) */
@@ -139,24 +139,24 @@ Status_t mpu_read_acc_gyr (float buf[6])
 		return STATUS_NOT_OK; /* Overflow occurred  */
 	}
 
-    /* Wait until FIFO contains at least NUM_BYTES */
+    /* Wait until FIFO contains at least NUM_BYTES_IMU */
 	while(1)
 	{
 		i2c1_perform_action(READ, MPU_I2C_ADDR, FIFO_COUNT_H_R, 2U, count_buf);
 		fifo_count = ((uint16_t)count_buf[0] << 8U) | (uint16_t)count_buf[1];
-		if(fifo_count >= NUM_BYTES) break;
+		if(fifo_count >= NUM_BYTES_IMU) break;
 		/* Small delay before reading FIFO again */
 		delay_us(FIFO_POLL_US);
 	}
     /* Read accelerometer and gyroscope data from FIFO */
-	i2c1_perform_action(READ, MPU_I2C_ADDR, FIFO_R_W_R, NUM_BYTES, raw_buf);
+	i2c1_perform_action(READ, MPU_I2C_ADDR, FIFO_R_W_R, NUM_BYTES_IMU, raw_buf);
 
     /* Convert raw data to float using sensitivity scale factors */
 	float scale_factor;
-	for(uint8_t i=0,j = 0;i<NUM_BYTES;i+=2, j++)
+	for(uint8_t i=0,j = 0;i<NUM_BYTES_IMU;i+=2, j++)
 	{
 		/* First half of buffer is ACC, second half is GYR */
-		scale_factor = (i<(NUM_BYTES/2U)) ? ACC_SCALE_FACTOR : GYR_SCALE_FACTOR;
+		scale_factor = (i<(NUM_BYTES_IMU/2U)) ? ACC_SCALE_FACTOR : GYR_SCALE_FACTOR;
 
 		/* Combine MSB and LSB into int16_t */
 		/* The first byte in the buff is the MSB and the second the LSB */

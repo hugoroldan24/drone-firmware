@@ -70,10 +70,21 @@ typedef struct {
 } PID_Controller_t;
 
 
-typedef struct {
-	int32_t  preassure;
-	uint16_t battery_level;
+typedef union {
+    struct{
+       uint8_t battery_int;
+       uint8_t battery_frac;
+       uint8_t altitude_int;
+       uint8_t altitude_frac;  
+    }
+    uint8_t telem_array[TELEM_FRAME_SIZE];
 } Telem_t;
+
+
+typedef struct {
+   int32_t  preassure;
+   uint16_t battery_level;
+} Raw_Data_t;
 
 
 #endif /* DRON_STRUCTS_H_ */
