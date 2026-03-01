@@ -21,7 +21,7 @@
  ***********************************************************************************************/
  
  
-#include "const.h"
+#include "config.h"
 #include "transmitter.h"
 #include "circular_queue.h"
 #include "scheduler.h"

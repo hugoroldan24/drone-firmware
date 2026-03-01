@@ -17,7 +17,7 @@
 #include "scheduler.h"
 #include "rx_tasks.h"
 #include "circular_queue.h"
-#include "const.h"
+#include "config.h"
 
 
 CircularQueue receiver_cq;
