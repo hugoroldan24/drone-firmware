@@ -1,4 +1,5 @@
 # ✈️ Drone Controller Embedded Software ✈️  
+[IN PROGRESS]
 
 This project is focused on developing **embedded software in Embedded C** for a complete drone system: the **flight controller**, the **RF transmitter**, and the **RF receiver**.
 
